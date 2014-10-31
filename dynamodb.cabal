@@ -1,0 +1,45 @@
+name:                dynamo
+version:             0.1.0.0
+synopsis:            API Bindinds to the AWS DynamoDB service
+license:             BSD3
+license-file:        LICENSE
+author:              David Johnson
+maintainer:          djohnson.m@gmail.com
+copyright:           David Johnson (c) 2014
+category:            Web, DB
+build-type:          Simple
+cabal-version:       >=1.10
+description:
+    [dynamo - High Level Bindings to AWS DynamoDB]
+    .
+    > module Main where
+    >
+    > import DynamoDB
+    > 
+    > main :: IO ()
+    > main = putStrLn welcome
+    >   where welcome = "Hi dynamo"
+    >
+    .
+    [Issues - <http://github.com/dmjio/dynamo>]
+    Any API recommendations or bugs can be reported on the issue tracker
+
+library
+  exposed-modules:     Web.AWS.DynamoDB
+  other-modules:       Web.AWS.DynamoDB.Types
+                     , Web.AWS.DynamoDB.Table
+                     , Web.AWS.DynamoDB.Helpers
+                     , Web.AWS.DynamoDB.Client
+  hs-source-dirs:      src
+  build-depends:       HsOpenSSL
+                     , aeson
+                     , aws-general
+                     , base >=4.7 && <4.8
+                     , bytestring
+                     , either
+                     , http-streams
+                     , io-streams >= 1.2.0.1
+                     , mtl
+                     , text
+                     , time
+  default-language:    Haskell2010
