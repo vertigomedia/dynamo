@@ -5,7 +5,7 @@ license:             BSD3
 license-file:        LICENSE
 author:              David Johnson
 maintainer:          djohnson.m@gmail.com
-copyright:           David Johnson (c) 2014
+copyright:           Vertigo Music Inc. (c) 2014
 category:            Web, DB
 build-type:          Simple
 cabal-version:       >=1.10
