@@ -15,7 +15,6 @@ import           Control.Applicative
 import           Data.ByteString (ByteString)
 import qualified Data.ByteString.Lazy as L
 import qualified Data.ByteString.Char8 as B8
-import           Control.Exception
 import           Data.Time
 
 import           Network.HTTP.Types.Header
@@ -31,37 +30,38 @@ type Payload = ByteString
 gg :: Payload -> IO (Either String RequestHeaders)
 gg payload = do
   c@(public, private) <- getKeys
-  print c
   creds <- newCredentials public private
   now   <- getCurrentTime
-  signPostRequestIO creds UsWest2 ServiceNamespaceDynamodb now "POST"
+  signPostRequestIO creds UsEast1 ServiceNamespaceDynamodb now "POST"
            ([] :: UriPath)
            ([] :: UriQuery)
-           ([ ("host", "dynamodb.us-west-2.amazonaws.com")
+           ([ ("host", "dynamodb.us-east-1.amazonaws.com")
             , ("x-amz-target", "DynamoDB_20120810.ListTables")
             , ("connection", "Keep-Alive")
-            , ("content-length", B8.pack (show $ B8.length payload))
             , ("content-type", "application/x-amz-json-1.0")
             ] :: RequestHeaders)
            payload 
 
-main :: IO ()
-main = do
-  req <- parseUrl "https://dynamodb.us-west-2.amazonaws.com"    
-  let r = encode (ListTableRequest Nothing Nothing)
-  print r
-  Right heads <- gg $ L.toStrict $ encode (ListTableRequest Nothing Nothing)
+data Op = ListTables | DescribeTable
+
+getDynamo :: L.ByteString -> IO ()
+getDynamo bs = do
+  req <- parseUrl "https://dynamodb.us-east-1.amazonaws.com"    
+  Right heads <- gg $ L.toStrict bs
   let req' = req {
-          method = "POST"
+        method = "POST"
         , requestHeaders = heads
-        , requestBody = RequestBodyLBS r
+        , requestBody = RequestBodyLBS bs
         }
-  print req'
   withManager tlsManagerSettings $ \m ->
     withHTTP req' m $ \resp -> do
-    print $ responseHeaders resp 
     runEffect $ responseBody resp >-> PB.stdout
   
+data TR = TR { tableName :: Text } deriving (Show)
+
+instance ToJSON TR where
+  toJSON TR{..} = object [ "TableName" .= tableName ]
+
 ------------------------------------------------------------------------------
 -- | List Tables
 data ListTableRequest = ListTableRequest {
@@ -85,8 +85,6 @@ instance FromJSON ListTableResponse where
     ListTableResponse <$> o .: "LastEvalutedTableName"
                       <*> o .: "TableNames"
 
--- gts :: ByteString
--- gts = L.toStrict $ encode $ ListTableRequest "Person" 0
 
 getKeys :: IO (ByteString, ByteString)
 getKeys = do [public, private] <- map (drop 1 . dropWhile (/=':')) . lines <$> readFile "/Users/dmj/.awskeys"
