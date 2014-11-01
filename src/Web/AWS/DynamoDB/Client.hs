@@ -15,18 +15,58 @@ import           Control.Applicative
 import           Data.ByteString (ByteString)
 import qualified Data.ByteString.Lazy as L
 import qualified Data.ByteString.Char8 as B8
-import           OpenSSL
 import           Control.Exception
+import           Data.Time
 
-import           Network.Http.Client
+import           Network.HTTP.Types.Header
 import           Aws.SignatureV4
-import qualified System.IO.Streams as S
+import           Aws.General
 
+import Pipes
+import Pipes.HTTP
+import qualified Pipes.ByteString as PB 
+
+type Payload = ByteString
+
+gg :: Payload -> IO (Either String RequestHeaders)
+gg payload = do
+  c@(public, private) <- getKeys
+  print c
+  creds <- newCredentials public private
+  now   <- getCurrentTime
+  signPostRequestIO creds UsWest2 ServiceNamespaceDynamodb now "POST"
+           ([] :: UriPath)
+           ([] :: UriQuery)
+           ([ ("host", "dynamodb.us-west-2.amazonaws.com")
+            , ("x-amz-target", "DynamoDB_20120810.ListTables")
+            , ("connection", "Keep-Alive")
+            , ("content-length", B8.pack (show $ B8.length payload))
+            , ("content-type", "application/x-amz-json-1.0")
+            ] :: RequestHeaders)
+           payload 
+
+main :: IO ()
+main = do
+  req <- parseUrl "https://dynamodb.us-west-2.amazonaws.com"    
+  let r = encode (ListTableRequest Nothing Nothing)
+  print r
+  Right heads <- gg $ L.toStrict $ encode (ListTableRequest Nothing Nothing)
+  let req' = req {
+          method = "POST"
+        , requestHeaders = heads
+        , requestBody = RequestBodyLBS r
+        }
+  print req'
+  withManager tlsManagerSettings $ \m ->
+    withHTTP req' m $ \resp -> do
+    print $ responseHeaders resp 
+    runEffect $ responseBody resp >-> PB.stdout
+  
 ------------------------------------------------------------------------------
 -- | List Tables
 data ListTableRequest = ListTableRequest {
-    exclusiveStartTableName :: Text
-  , listTableRequestLimit   :: Int
+    exclusiveStartTableName :: Maybe Text
+  , listTableRequestLimit   :: Maybe Int
   } deriving (Show)
 
 instance ToJSON ListTableRequest where
@@ -45,8 +85,8 @@ instance FromJSON ListTableResponse where
     ListTableResponse <$> o .: "LastEvalutedTableName"
                       <*> o .: "TableNames"
 
-gts :: ByteString
-gts = L.toStrict $ encode $ ListTableRequest "Person" 0
+-- gts :: ByteString
+-- gts = L.toStrict $ encode $ ListTableRequest "Person" 0
 
 getKeys :: IO (ByteString, ByteString)
 getKeys = do [public, private] <- map (drop 1 . dropWhile (/=':')) . lines <$> readFile "/Users/dmj/.awskeys"
@@ -54,31 +94,6 @@ getKeys = do [public, private] <- map (drop 1 . dropWhile (/=':')) . lines <$> r
 
 ------------------------------------------------------------------------------
 -- | Make Request
-req :: IO ()
-req = do
-   withOpenSSL $ do
-     ctx <- baselineContextSSL
-     result <- try (openConnectionSSL ctx "dynamodb.us-west-2.amazonaws.com" 443)
-                        :: IO (Either SomeException Connection)
-     case result of
-      Left msg -> print "oh no"
-      Right conn -> do
-        request <- buildRequest $ do
-          http POST "/"
-          setContentType "application/x-amz-json-1.0"
---          setContentLength (fromIntegral $ B.length gts)
-          setHeader "Connection" "Keep-Alive"  
-          setHeader "x-amz-date" "now"  
-          setHeader "Authorization" "!"
-          setHeader "x-amz-target" "DynamoDB_20120810.ListTables"  
-        print request
-        body <- S.fromByteString gts
-        sendRequest conn request $ inputStreamBody body
-        receiveResponse conn $ \r inputStream -> do
-          print r
-          S.connect inputStream S.stdout
-        closeConnection conn
-
 
 
 
