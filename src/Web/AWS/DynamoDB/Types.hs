@@ -1,3 +1,4 @@
+{-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RankNTypes        #-}
 -- |
@@ -9,12 +10,14 @@
 
 module Web.AWS.DynamoDB.Types where
 
-import           Data.Text    (Text)
-import           Data.Time   
+import           Data.Text    (Text,pack)
+import           Data.Char
 import           Data.Aeson
 
 import           Control.Monad.Reader
 import           Control.Monad.Trans.Either
+
+import           Web.AWS.DynamoDB.Helpers
 
 ------------------------------------------------------------------------------
 -- | Dyna-Monad :P
@@ -23,6 +26,25 @@ type DynamoDB = forall a . FromJSON a => EitherT String (ReaderT String IO) a
 ------------------------------------------------------------------------------
 -- | DynamoDB Types: 
 -- <http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/DataModel.html#DataModel.DataTypes>
+
+-- ------------------------------------------------------------------------------
+-- -- | API Operations
+-- data Operation =
+--     BatchGetItemOp
+--   | BatchWriteItemOp
+--   | CreateTableOp
+--   | DeleteItemOp
+--   | DeleteTableOp
+--   | DescribeTableOp
+--   | GetItemOp
+--   | ListTablesOp
+--   | PutItemOp
+--   | QueryOp
+--   | ScanOp
+--   | UpdateItemOp
+--   | UpdateTableOp
+--  deriving (Eq)
+
 data DynamoType =
     S    -- ^ String Type 
   | N    -- ^ Number Type
@@ -34,16 +56,78 @@ data DynamoType =
   | BS   -- ^ Binary set
   | L    -- ^ List
   | M    -- ^ Map
-  deriving (Show)
+  deriving (Show, Eq)
+
+instance ToJSON DynamoType where
+  toJSON = String . toText
 
 ------------------------------------------------------------------------------
--- | TableRespone
-data TableResponse = TableResponse {
-     tableResponseAttributeDefintions :: [AttributeDefinitions]
-   , tableResponseCreationTime        :: UTCTime
-  } deriving (Show)
-
+-- | Attribute Defintions
 data AttributeDefinitions = AttributeDefinitions {
-    attributeName :: Text
+      attributeName :: Text        -- ^ A name for the attribute, Minimum length of 1. Maximum length of 255, Required 
+    , attributeType :: DynamoType  -- ^ Required, valid values : S | N | B
+  } deriving (Show, Eq)
+
+instance ToJSON AttributeDefinitions where
+  toJSON AttributeDefinitions{..} =
+    object [
+        "AttributeName" .= attributeName
+      , "AttributeType" .= attributeType
+      ]
+
+------------------------------------------------------------------------------
+-- | Key Type
+data KeyType = Hash
+             | Range
+             deriving (Show, Eq)
+
+instance ToJSON KeyType where
+  toJSON = String . pack . map toUpper . show
+
+------------------------------------------------------------------------------
+-- | Key Schema
+data KeySchema = KeySchema {
+      keyAttributeName :: Text    -- ^ Required, Minimum length of 1. Maximum length of 255.
+    , keyType          :: KeyType -- ^ Required, HASH or RANGE
+  } deriving (Show, Eq)
+
+instance ToJSON KeySchema where
+  toJSON KeySchema{..} = object [ "AttributeName" .= keyAttributeName
+                                , "KeyType" .= keyType
+                                ]
+
+------------------------------------------------------------------------------
+-- | Provisioned ThroughPut
+-- Represents the provisioned throughput settings for a specified
+-- table or index. The settings can be modified using the UpdateTable operation.
+data Throughput = Throughput {
+     readCapacityUnits :: Int -- ^ Required, Long, The maximum number of strongly consistent reads consumed per second before DynamoDB returns a ThrottlingException
+   , writeCapacityUnits :: Int -- ^ Required, Long, The maximum number of writes consumed per second before DynamoDB returns a ThrottlingException
+  } deriving (Show, Eq)
+
+instance ToJSON Throughput where
+  toJSON Throughput{..} =
+    object [ "ReadCapacityUnits" .= readCapacityUnits
+           , "WriteCapacityUnits" .= writeCapacityUnits
+           ]
+
+------------------------------------------------------------------------------
+-- | Describe the table to retrieve
+data DescribeTable = DescribeTable {
+    describeTableName :: Text
   } deriving (Show)
 
+instance ToJSON DescribeTable where
+  toJSON DescribeTable{..} = object [ "TableName" .= describeTableName ]
+
+------------------------------------------------------------------------------
+-- | PutItem
+-- <<http://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_PutItem.html>>
+data PutItem = PutItem {
+     putItemConditionalExpression :: Text
+   , putItemConditionalOperator :: Text
+   , putItemExpected :: Text
+  }
+
+instance ToJSON PutItem where
+  toJSON PutItem{..} = object [  ]

@@ -7,9 +7,24 @@
 -- Portability : POSIX
 module Web.AWS.DynamoDB.Helpers where
 
+import           Control.Applicative
 import           Data.Text    (Text, pack)
+import           Data.ByteString (ByteString)
+import qualified Data.ByteString.Char8 as B8
 
 ------------------------------------------------------------------------------
 -- | Text Helper
 toText :: Show a => a -> Text
 toText = pack . show
+
+------------------------------------------------------------------------------
+-- | ByteString Helper
+toBS :: Show a => a -> ByteString
+toBS = B8.pack . show
+
+------------------------------------------------------------------------------
+-- | Key Retrieval Helpers
+getKeys :: IO (ByteString, ByteString)
+getKeys = do [public, private] <- map (drop 1 . dropWhile (/=':')) . lines <$> readFile "/Users/dmj/.awskeys"
+             return (B8.pack public, B8.pack private)
+
