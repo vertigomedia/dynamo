@@ -20,42 +20,60 @@ import           Data.Time
 import           Network.HTTP.Types.Header
 import           Aws.SignatureV4
 import           Aws.General
+import           Data.Monoid
 
-import Pipes
-import Pipes.HTTP
+import           Pipes
+import           Pipes.HTTP
 import qualified Pipes.ByteString as PB 
 
 type Payload = ByteString
 
-gg :: Payload -> IO (Either String RequestHeaders)
-gg payload = do
-  c@(public, private) <- getKeys
+toBS :: Show a => a -> ByteString
+toBS = B8.pack . show
+
+data Operation =
+    BatchGetItem 
+  | BatchWriteItem 
+  | CreateTable 
+  | DeleteItem
+  | DeleteTable
+  | DescribeTable
+  | GetItem
+  | ListTables
+  | PutItem
+  | Query
+  | Scan
+  | UpdateItem
+  | UpdateTable
+ deriving (Show, Eq)
+
+gg :: Payload -> Operation -> IO (Either String RequestHeaders)
+gg payload operation = do
+  (public, private) <- getKeys
   creds <- newCredentials public private
   now   <- getCurrentTime
   signPostRequestIO creds UsEast1 ServiceNamespaceDynamodb now "POST"
            ([] :: UriPath)
            ([] :: UriQuery)
            ([ ("host", "dynamodb.us-east-1.amazonaws.com")
-            , ("x-amz-target", "DynamoDB_20120810.ListTables")
+            , ("x-amz-target", "DynamoDB_20120810." <> toBS operation)
             , ("connection", "Keep-Alive")
             , ("content-type", "application/x-amz-json-1.0")
             ] :: RequestHeaders)
            payload 
 
-data Op = ListTables | DescribeTable
-
-getDynamo :: L.ByteString -> IO ()
-getDynamo bs = do
+callDynamo :: ToJSON a => Operation -> a -> IO ()
+callDynamo op bs = do
   req <- parseUrl "https://dynamodb.us-east-1.amazonaws.com"    
-  Right heads <- gg $ L.toStrict bs
+  Right heads <- gg (L.toStrict . encode $ bs) op
   let req' = req {
-        method = "POST"
-        , requestHeaders = heads
-        , requestBody = RequestBodyLBS bs
-        }
+       method = "POST"
+     , requestHeaders = heads
+     , requestBody = stream $ PB.fromLazy (encode bs)
+     }
   withManager tlsManagerSettings $ \m ->
     withHTTP req' m $ \resp -> do
-    runEffect $ responseBody resp >-> PB.stdout
+      runEffect $ responseBody resp >-> PB.stdout
   
 data TR = TR { tableName :: Text } deriving (Show)
 
@@ -85,13 +103,8 @@ instance FromJSON ListTableResponse where
     ListTableResponse <$> o .: "LastEvalutedTableName"
                       <*> o .: "TableNames"
 
-
 getKeys :: IO (ByteString, ByteString)
 getKeys = do [public, private] <- map (drop 1 . dropWhile (/=':')) . lines <$> readFile "/Users/dmj/.awskeys"
              return (B8.pack public, B8.pack private)
-
-------------------------------------------------------------------------------
--- | Make Request
-
 
 
