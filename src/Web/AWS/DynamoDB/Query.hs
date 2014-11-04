@@ -8,3 +8,11 @@
 -- Portability : POSIX
 module Web.AWS.DynamoDB.Query where
 
+import           Data.Aeson
+import qualified Data.Text as T
+import           Data.Text    (Text)
+
+import           Web.AWS.DynamoDB.Client
+import           Web.AWS.DynamoDB.Types
+
+

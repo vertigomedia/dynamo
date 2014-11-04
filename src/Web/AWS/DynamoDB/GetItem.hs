@@ -25,6 +25,20 @@ test2 = getItem $ GetItem
        [ Item "ID" S "2"
        ] "People"
 
+------------------------------------------------------------------------------
+-- | Types
+data GetItem = GetItem {
+    getItemKey       :: [Item] 
+  , getItemTableName :: Text
+  } 
+
+instance ToJSON GetItem where
+  toJSON GetItem{..} =
+    object [
+        "Key" .= let x = map (\(Item k t v) -> k .= object [ toText t .= v ]) getItemKey
+                 in object x
+      , "TableName" .= getItemTableName                  
+           ]
 
        
                      

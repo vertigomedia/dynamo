@@ -26,16 +26,21 @@ test = createTable $ CreateTable [ AttributeDefinitions "ID" S
                                  , KeySchema "Age" Range ] Nothing
                                  (Throughput 1 1)
                                  "Dogs"
- 
+
+------------------------------------------------------------------------------
+-- | Types
 data CreateTable = CreateTable {
      createTableAttrDefintions         :: [AttributeDefinitions] -- ^ Required
-   , createTableGlobalSecondaryIndexes :: Maybe [Int]                  -- ^ Not Required
+   -- ^ You can only define indexes at table creation time, you cannot add them later
+   , createTableGlobalSecondaryIndexes :: Maybe [Int]            -- ^ Not Required
    , createTableKeySchema              :: [KeySchema]            -- ^ Required
-   , createTableLocalSecondaryIndexes  :: Maybe [Int]                  -- ^ Not Required
+   , createTableLocalSecondaryIndexes  :: Maybe [Int]            -- ^ Not Required
    , createTableProvisionedThroughput  :: Throughput             -- ^ Required
-   , createTableName                   :: Text                   -- ^ Required
+   , createTableName                   :: Text                   -- ^ Required, a-z, A-Z, 0-9, '_', '-', '.' Supported, Between 3 and 255 characters
    } deriving (Show, Eq)
 
+------------------------------------------------------------------------------
+-- | JSON Instance
 instance ToJSON CreateTable where
   toJSON CreateTable{..} =
     object [

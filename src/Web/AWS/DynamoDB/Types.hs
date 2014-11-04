@@ -26,25 +26,6 @@ type DynamoDB = forall a . FromJSON a => EitherT String (ReaderT String IO) a
 ------------------------------------------------------------------------------
 -- | DynamoDB Types: 
 -- <http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/DataModel.html#DataModel.DataTypes>
-
--- ------------------------------------------------------------------------------
--- -- | API Operations
--- data Operation =
---     BatchGetItemOp
---   | BatchWriteItemOp
---   | CreateTableOp
---   | DeleteItemOp
---   | DeleteTableOp
---   | DescribeTableOp
---   | GetItemOp
---   | ListTablesOp
---   | PutItemOp
---   | QueryOp
---   | ScanOp
---   | UpdateItemOp
---   | UpdateTableOp
---  deriving (Eq)
-
 data DynamoType =
     S    -- ^ String Type 
   | N    -- ^ Number Type
@@ -77,9 +58,10 @@ instance ToJSON AttributeDefinitions where
 
 ------------------------------------------------------------------------------
 -- | Key Type
-data KeyType = Hash
-             | Range
-             deriving (Show, Eq)
+data KeyType =
+    Hash
+  | Range
+  deriving (Show, Eq)
 
 instance ToJSON KeyType where
   toJSON = String . pack . map toUpper . show
@@ -112,72 +94,11 @@ instance ToJSON Throughput where
            ]
 
 ------------------------------------------------------------------------------
--- | Describe the table to retrieve
-data DescribeTable = DescribeTable {
-    describeTableName :: Text
-  } deriving (Show)
-
-instance ToJSON DescribeTable where
-  toJSON DescribeTable{..} = object [ "TableName" .= describeTableName ]
-
-------------------------------------------------------------------------------
--- | PutItem
--- <<http://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_PutItem.html>>
-data PutItem = PutItem {
-     putItems                           :: [Item]     -- ^ Required 
-   , putItemTableName                   :: Text       -- ^ Required 
-   , putItemConditionExpression         :: Maybe Text -- ^ Not Required
-   , putItemExpressionAttributeNames    :: Maybe Text -- ^ Not Required 
-   , putItemExpressionAttributeValues   :: Maybe Text -- ^ Not Required 
-   , putItemReturnConsumedCapacity      :: Maybe Text -- ^ Not Required 
-   , putItemReturnItemCollectionMetrics :: Maybe Text -- ^ Not Required 
-   , putItemReturnValues                :: Maybe Text -- ^ Not Required 
-  }
-
+-- | Item for insertion or retrieval
 type ItemName = Text
 type ItemValue = Text
 
 data Item = Item ItemName DynamoType ItemValue
-
-instance ToJSON PutItem where
-  toJSON PutItem{..} =
-    object [  "Item" .= let x = map (\(Item k t v) -> k .= object [ toText t .= v ]) putItems
-                        in object x
-           ,  "TableName" .= putItemTableName
-           ]
-
-data PutItemResponse = PutItemResponse deriving (Show, Eq)
-
-instance FromJSON PutItemResponse where
-   parseJSON (Object o) = pure PutItemResponse
-   parseJSON _ = mzero
-
-data GetItem = GetItem {
-    getItemKey       :: [Item] 
-  , getItemTableName :: Text
-  } 
-
-instance ToJSON GetItem where
-  toJSON GetItem{..} =
-    object [
-        "Key" .= let x = map (\(Item k t v) -> k .= object [ toText t .= v ]) getItemKey
-                 in object x
-      , "TableName" .= getItemTableName                  
-           ]
-
-data DeleteItem = DeleteItem {
-    deleteItemKey       :: [Item] 
-  , deleteItemTableName :: Text
-  } 
-
-instance ToJSON DeleteItem where
-  toJSON DeleteItem{..} =
-    object [
-        "Key" .= let x = map (\(Item k t v) -> k .= object [ toText t .= v ]) deleteItemKey
-                 in object x
-      , "TableName" .= deleteItemTableName                  
-           ]
-
 data Capacity = INDEXES | TOTAL | NONE deriving (Show)
 
 -- ------------------------------------------------------------------------------
@@ -197,10 +118,4 @@ data Capacity = INDEXES | TOTAL | NONE deriving (Show)
 --   toJSON RequestItem{..} = object [ "RequestItems" .=   ]
 
 
-data DeleteTable = DeleteTable {
-   deleteTableName :: Text
-  } deriving (Show, Eq)
-
-instance ToJSON DeleteTable where
-  toJSON DeleteTable{..} = object [ "TableName" .= deleteTableName ]
 

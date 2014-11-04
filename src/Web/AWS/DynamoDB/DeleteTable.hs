@@ -24,3 +24,11 @@ deleteTable = callDynamo "DeleteTable"
 test :: IO ()
 test = deleteTable DeleteTable { deleteTableName = "People" }
 
+------------------------------------------------------------------------------
+-- | Types
+data DeleteTable = DeleteTable {
+   deleteTableName :: Text
+  } deriving (Show, Eq)
+
+instance ToJSON DeleteTable where
+  toJSON DeleteTable{..} = object [ "TableName" .= deleteTableName ]
