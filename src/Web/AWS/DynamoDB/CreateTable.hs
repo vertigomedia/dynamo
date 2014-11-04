@@ -12,13 +12,11 @@ import           Data.Aeson
 import           Data.Text    (Text)
 import           Web.AWS.DynamoDB.Client
 import           Web.AWS.DynamoDB.Types
-import           Web.AWS.DynamoDB.Helpers
---import           Data.Time
 
 ------------------------------------------------------------------------------
 -- | Make Request
 createTable :: CreateTable -> IO ()
-createTable createTable = callDynamo "CreateTable" createTable
+createTable = callDynamo "CreateTable" 
 
 test :: IO ()
 test = createTable $ CreateTable [ AttributeDefinitions "ID" S
