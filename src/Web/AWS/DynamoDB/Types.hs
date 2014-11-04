@@ -24,6 +24,10 @@ import           Web.AWS.DynamoDB.Helpers
 type DynamoDB = forall a . FromJSON a => EitherT String (ReaderT String IO) a
 
 ------------------------------------------------------------------------------
+-- | Run Dynamo
+--dynamo config requests = runReaderT config $ runEitherT requests
+
+------------------------------------------------------------------------------
 -- | DynamoDB Types: 
 -- <http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/DataModel.html#DataModel.DataTypes>
 data DynamoType =

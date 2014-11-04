@@ -11,10 +11,10 @@ import           Data.Time
 
 ------------------------------------------------------------------------------
 -- | Make Request
-listTables :: ListTables -> IO ()
+listTables :: ListTables -> IO (Either String Object)
 listTables tables = callDynamo "ListTables" tables
 
-test :: IO ()
+test :: IO (Either String Object)
 test = listTables $ ListTables Nothing Nothing
 
 ------------------------------------------------------------------------------
