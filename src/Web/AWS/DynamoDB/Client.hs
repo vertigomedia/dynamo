@@ -30,7 +30,7 @@ callDynamo :: ToJSON a => Operation -> a -> IO ()
 callDynamo op bs = do
   req <- parseUrl "http://localhost:8000"--"https://dynamodb.us-east-1.amazonaws.com"    
   let rawjson = L.toStrict . encode $ bs
-  print rawjson
+--  print rawjson
   Right heads <- createRequest rawjson op
   let req' = req {
        method = "POST"

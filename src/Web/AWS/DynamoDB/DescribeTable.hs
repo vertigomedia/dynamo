@@ -1,3 +1,5 @@
+{-# LANGUAGE MultiWayIf #-}
+
 -- |
 -- Module      : Web.AWS.DynamoDB.DescribeTable
 -- Copyright   : (c) David Johnson, 2014
@@ -16,5 +18,4 @@ describeTable dt = callDynamo "DescribeTable" dt
 
 test :: IO ()
 test = describeTable $ DescribeTable "People"
-
 

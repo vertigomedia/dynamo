@@ -152,3 +152,29 @@ data PutItemResponse =
 instance FromJSON PutItemResponse where
    parseJSON (Object o) = pure PutItemResponse
    parseJSON _ = mzero
+
+data GetItem = GetItem {
+    getItemKey       :: [Item] 
+  , getItemTableName :: Text
+  } 
+
+instance ToJSON GetItem where
+  toJSON GetItem{..} =
+    object [
+        "Key" .= let x = map (\(Item k t v) -> k .= object [ toText t .= v ]) getItemKey
+                 in object x
+      , "TableName" .= getItemTableName                  
+           ]
+
+data DeleteItem = DeleteItem {
+    deleteItemKey       :: [Item] 
+  , deleteItemTableName :: Text
+  } 
+
+instance ToJSON DeleteItem where
+  toJSON DeleteItem{..} =
+    object [
+        "Key" .= let x = map (\(Item k t v) -> k .= object [ toText t .= v ]) deleteItemKey
+                 in object x
+      , "TableName" .= deleteItemTableName                  
+           ]

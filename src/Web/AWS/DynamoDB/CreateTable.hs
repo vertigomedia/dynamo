@@ -20,10 +20,12 @@ createTable = callDynamo "CreateTable"
 
 test :: IO ()
 test = createTable $ CreateTable [ AttributeDefinitions "ID" S
+                                 , AttributeDefinitions "Age" N
                                  ] Nothing
-                                 [ KeySchema "ID" Hash ] Nothing
+                                 [ KeySchema "ID" Hash
+                                 , KeySchema "Age" Range ] Nothing
                                  (Throughput 1 1)
-                                 "People"
+                                 "Dogs"
  
 data CreateTable = CreateTable {
      createTableAttrDefintions         :: [AttributeDefinitions] -- ^ Required
