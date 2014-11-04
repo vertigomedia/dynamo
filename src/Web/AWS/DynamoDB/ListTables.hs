@@ -14,6 +14,9 @@ import           Data.Time
 listTables :: ListTables -> IO ()
 listTables tables = callDynamo "ListTables" tables
 
+test :: IO ()
+test = listTables $ ListTables Nothing Nothing
+
 ------------------------------------------------------------------------------
 -- | TableRespone
 data TableResponse = TableResponse {
