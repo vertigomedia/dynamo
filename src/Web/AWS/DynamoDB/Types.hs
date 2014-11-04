@@ -146,8 +146,7 @@ instance ToJSON PutItem where
            ,  "TableName" .= putItemTableName
            ]
 
-data PutItemResponse =
-  PutItemResponse deriving (Show, Eq)
+data PutItemResponse = PutItemResponse deriving (Show, Eq)
 
 instance FromJSON PutItemResponse where
    parseJSON (Object o) = pure PutItemResponse
@@ -178,3 +177,30 @@ instance ToJSON DeleteItem where
                  in object x
       , "TableName" .= deleteItemTableName                  
            ]
+
+data Capacity = INDEXES | TOTAL | NONE deriving (Show)
+
+-- ------------------------------------------------------------------------------
+-- -- | Batch Get Item
+-- data BatchGetItem = BatchGetItem {
+--      batchGetItemRequestItems :: [RequestItem] -- ^ Required
+--    , returnConsumedCapacity :: Bool -- ^ Not Required, -- Valid Values, INDEXES, TOTAL, NONE
+--   } deriving (Show, Eq)
+
+-- data RequestItem = RequestItem
+--     { requestItemTableName :: Text
+--     , requestItemKeys      :: [Item]
+--     , requestItemConsistentRead :: Bool -- ^ Not Required, default False
+--     } deriving (Show, Eq)
+
+-- instance ToJSON RequestItem where
+--   toJSON RequestItem{..} = object [ "RequestItems" .=   ]
+
+
+data DeleteTable = DeleteTable {
+   deleteTableName :: Text
+  } deriving (Show, Eq)
+
+instance ToJSON DeleteTable where
+  toJSON DeleteTable{..} = object [ "TableName" .= deleteTableName ]
+
