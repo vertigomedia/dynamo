@@ -20,7 +20,7 @@ updateTable :: UpdateTable -> IO ()
 updateTable = callDynamo "UpdateTable" 
 
 test :: IO ()
-test = updateTable $ UpdateTable "Dogs" (Throughput 16 16)
+test = updateTable $ UpdateTable "Dogs" (Throughput 8 8)
 
 ------------------------------------------------------------------------------
 -- | Update Provisioned Throughput on Table

@@ -1,3 +1,4 @@
+{-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE OverloadedStrings #-}
 -- |
 -- Module      : Web.AWS.DynamoDB.GetItem
@@ -7,7 +8,11 @@
 -- Portability : POSIX
 module Web.AWS.DynamoDB.GetItem where
 
+import           Data.Aeson
+import           Data.Text    (Text)
+
 import           Web.AWS.DynamoDB.Client
+import           Web.AWS.DynamoDB.Helpers
 import           Web.AWS.DynamoDB.Types
 
 ------------------------------------------------------------------------------
@@ -22,8 +27,15 @@ test = getItem $ GetItem
 
 test2 :: IO ()
 test2 = getItem $ GetItem
-       [ Item "ID" S "2"
-       ] "People"
+       [ Item "ID" S "8"
+       , Item "Age" N "8"
+       ] "Dogs"
+
+test3 :: IO ()
+test3 = getItem $ GetItem
+       [ Item "ID" S "9"
+       , Item "Age" N "99"
+       ] "Dogs"
 
 ------------------------------------------------------------------------------
 -- | Types

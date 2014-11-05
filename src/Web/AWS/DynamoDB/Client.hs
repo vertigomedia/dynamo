@@ -13,18 +13,22 @@ import           Control.Exception
 import           Data.Aeson
 import           Data.ByteString (ByteString)
 import qualified Data.ByteString.Lazy as L
+import           Control.Monad.Trans.State
 import           Data.Monoid
 import           Data.Bool
 import           Data.Time
 
 import           Network.HTTP.Types.Header
 import           Aws.SignatureV4
-import           Aws.General
+import           Aws.General hiding (parse)
 
 import           Pipes
 import           Pipes.HTTP
 import qualified Pipes.ByteString as PB 
 import           Web.AWS.DynamoDB.Helpers
+
+import           Data.Aeson.Parser (json)
+import           Pipes.Attoparsec (parse)
 
 type Operation = ByteString
 
@@ -43,14 +47,16 @@ callDynamo op bs = do
      , requestHeaders = heads
      , requestBody = stream $ PB.fromLazy (encode bs)
     }
-  withManager tlsManagerSettings $ \m -> do
-     res <- try (withHTTP req' m $ \resp -> do
-              runEffect $ responseBody resp >-> PB.stdout) :: IO (Either HttpException ()) 
-     print res
-     case res of
-       Left (StatusCodeException _ headers _) -> 
-         do print "caught"
-       _ -> print "all good"
+  res <- try $ withManager tlsManagerSettings $ \m -> 
+                 withHTTP req' m $ \resp -> do
+                 runEffect $ responseBody resp >-> PB.stdout
+  print res
+  case res of
+    Left (StatusCodeException _ headers _) -> 
+      case lookup "X-Response-Body-Start" headers of
+        Nothing -> print "no body?"
+        Just x -> print x
+    Right body -> print body
   where
     createRequest :: ByteString -> Operation -> IO (Either String RequestHeaders)
     createRequest payload operation = do

@@ -9,7 +9,6 @@
 module Web.AWS.DynamoDB.PutItem where
 
 import           Data.Aeson
-import qualified Data.Text as T
 import           Data.Text    (Text)
 
 import           Web.AWS.DynamoDB.Client
@@ -28,15 +27,16 @@ putItemDefault name items =
 
 test :: IO ()
 test = putItemDefault "Dogs"
-       [ Item "ID" S "2"
-       , Item "Age" N "21"
+       [ Item "ID" S "8"
+       , Item "Age" N "8"
+       , Item "Num" N "8"
        ]
 
-test2 :: IO ()
-test2 = putItemDefault "People" 
-       [ Item "ID" S "2"
-       , Item "Name" S "Alex"
-       ] 
+-- test2 :: IO ()
+-- test2 = putItemDefault "People" 
+--        [ Item "ID" S "2"
+--        , Item "Name" S "Alex"
+--        ] 
        
 ------------------------------------------------------------------------------
 -- | PutItem
@@ -58,6 +58,7 @@ instance ToJSON PutItem where
                         in object x
            ,  "TableName" .= putItemTableName
            ]
+
 
 -- data PutItemResponse = PutItemResponse deriving (Show, Eq)
 

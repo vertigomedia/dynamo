@@ -11,17 +11,34 @@
 --
 module Web.AWS.DynamoDB
        ( -- * Methods
-           main
+         --- * Table
+           module Web.AWS.DynamoDB.DescribeTable
+         , module Web.AWS.DynamoDB.ListTables
+         , module Web.AWS.DynamoDB.UpdateTable
+         , module Web.AWS.DynamoDB.DeleteTable
+         --- * Items
+         , module Web.AWS.DynamoDB.GetItem
+         , module Web.AWS.DynamoDB.PutItem
+         , module Web.AWS.DynamoDB.UpdateItem
+         , module Web.AWS.DynamoDB.DeleteItem
+         --- * Query
+         , module Web.AWS.DynamoDB.Query
          -- Table Methods
-         , module Web.AWS.DynamoDB.Table
          -- * Types
          , module Web.AWS.DynamoDB.Types 
        ) where
 
-import Web.AWS.DynamoDB.Types 
-import Web.AWS.DynamoDB.Table
+import Web.AWS.DynamoDB.Types         hiding (test, test2)
+import Web.AWS.DynamoDB.DescribeTable hiding (test)
+import Web.AWS.DynamoDB.ListTables    hiding (test)
+import Web.AWS.DynamoDB.UpdateTable   hiding (test)
+import Web.AWS.DynamoDB.DeleteTable   hiding (test)
+import Web.AWS.DynamoDB.GetItem       hiding (test, test2)
+import Web.AWS.DynamoDB.PutItem       hiding (test)
+import Web.AWS.DynamoDB.UpdateItem    hiding (test)
+import Web.AWS.DynamoDB.DeleteItem    hiding (test)
+import Web.AWS.DynamoDB.Query         hiding (test)
 
-------------------------------------------------------------------------------
--- | Main function entry point
-main :: IO ()
-main = putStrLn "hi"
+
+
+

@@ -12,6 +12,8 @@ import           Data.Aeson
 import           Data.Text    (Text)
 
 import           Web.AWS.DynamoDB.Client
+import           Web.AWS.DynamoDB.Types
+import           Web.AWS.DynamoDB.Helpers
 
 ------------------------------------------------------------------------------
 -- | Make Request
@@ -19,13 +21,62 @@ updateItem :: UpdateItem -> IO ()
 updateItem = callDynamo "UpdateItem" 
 
 test :: IO ()
-test = updateItem $ UpdateItem "Dogs"
+test = do
+  let u = updateItemDefault "Dogs" [
+          Item "ID" S "8"
+        , Item "Age" N "8"
+        ]
+  let u' = u { updateItemUpdateExpression = Just "set Num = :val1"
+             , updateItemExpressionAttributeValues = Just [ Item ":val1" N "9" ]
+             , updateItemReturnValues = Just ALL_NEW
+             , updateItemConditionExpression = Just "Num = 8"
+             }
+  print (encode u')
+  putStrLn ""
+  updateItem u
+
+updateItemDefault :: Text -> [Item] -> UpdateItem 
+updateItemDefault name keys =
+  UpdateItem name keys
+  Nothing Nothing Nothing
+  Nothing Nothing Nothing
+  Nothing 
 
 ------------------------------------------------------------------------------
 -- | Types
 data UpdateItem = UpdateItem {
-    updateItemTableName :: Text
-  } deriving (Show)
+      updateItemTableName                   :: Text   -- ^ Required
+    , updateItemKeys                        :: [Item] -- ^ Required
+    , updateItemConditionExpression         :: Maybe Text
+    , updateItemExpressionAttributeNames    :: Maybe Text
+    , updateItemExpressionAttributeValues   :: Maybe [Item]
+    , updateItemReturnConsumedCapacity      :: Maybe Text
+    , updateItemReturnItemCollectionMetrics :: Maybe Text
+    , updateItemReturnValues                :: Maybe ReturnValues
+    , updateItemUpdateExpression            :: Maybe Text
+  } 
+
+data ReturnValues = NONE | ALL_OLD | UPDATED_OLD | ALL_NEW | UPDATED_NEW deriving (Show)
+
+instance ToJSON ReturnValues where
+  toJSON = String . toText
 
 instance ToJSON UpdateItem where
-  toJSON UpdateItem{..} = object [ "TableName" .= updateItemTableName ]
+  toJSON UpdateItem{..} =
+    object [ "TableName" .= updateItemTableName
+           , "Key" .= let x = map (\(Item k t v) -> k .= object [ toText t .= v ]) updateItemKeys
+                      in object x
+           , "UpdateExpression" .= updateItemUpdateExpression
+           , "ConditionExpression" .= updateItemConditionExpression
+           , "ExpressionAttributeValues" .=
+               case updateItemExpressionAttributeValues of
+                 Nothing -> Nothing
+                 Just xs -> let x = map (\(Item k t v) -> k .= object [ toText t .= v ]) xs
+                            in Just $ object x
+           , "ReturnValues" .= updateItemReturnValues
+           ]
+
+
+
+
+

@@ -27,7 +27,6 @@ description:
 library
   exposed-modules:     Web.AWS.DynamoDB
   other-modules:       Web.AWS.DynamoDB.Types
-                     , Web.AWS.DynamoDB.Table
                      , Web.AWS.DynamoDB.Helpers
                      , Web.AWS.DynamoDB.Client
   hs-source-dirs:      src
