@@ -26,10 +26,11 @@ test = do
     print (encode thing)
     putStrLn ""
     query thing
-  where thing = defaultQuery "Dogs" [
-            Condition "ID" [AttributeValue S "2"] EQ,
-            Condition "Age" [AttributeValue N "19"] EQ
-          ]
+  where thing = let q = defaultQuery "Dogs" [
+                      Condition "ID" [AttributeValue S "2"] EQ
+--                 ,  Condition "Age" [AttributeValue N "19"] EQ
+                      ] 
+                in q { querySelect = Just Count }
 
 defaultQuery :: Text -> [Condition] -> Query
 defaultQuery t cs = Query t cs Nothing Nothing Nothing
@@ -52,7 +53,7 @@ data Query = Query {
   , queryIndexName :: Maybe Text                    -- ^ Not Required
   , queryReturnedConsumedCapacity :: Maybe Capacity -- ^ Not Required
   , queryScanIndexForward :: Maybe Bool             -- ^ Not Required
-  , querySelect :: Maybe Text                       -- ^ Not Required
+  , querySelect :: Maybe Select                     -- ^ Not Required
   }
 
 data KeyCondition = KeyCondition [Condition]
@@ -66,6 +67,7 @@ instance ToJSON AttributeValue where
 instance ToJSON Query where
   toJSON Query{..} = object [
       "TableName" .= queryTableName
+    , "Select" .= querySelect
     , "KeyConditions" .= let x = map (\(Condition iname vlist op) ->
                                        iname .= object [
                                          "ComparisonOperator" .= op
