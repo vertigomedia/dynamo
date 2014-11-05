@@ -8,12 +8,10 @@
 -- Portability : POSIX
 module Web.AWS.DynamoDB.DescribeTable where
 
-import           Data.Aeson
-import qualified Data.Text as T
+import           Data.Aeson 
 import           Data.Text    (Text)
 
 import           Web.AWS.DynamoDB.Client
-import           Web.AWS.DynamoDB.Types
 
 ------------------------------------------------------------------------------
 -- | Make Request
@@ -21,7 +19,7 @@ describeTable :: DescribeTable -> IO ()
 describeTable dt = callDynamo "DescribeTable" dt
 
 test :: IO ()
-test = describeTable $ DescribeTable "People"
+test = describeTable $ DescribeTable "Dogs"
 
 ------------------------------------------------------------------------------
 -- | Types

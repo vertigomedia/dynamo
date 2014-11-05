@@ -105,21 +105,3 @@ type ItemValue = Text
 data Item = Item ItemName DynamoType ItemValue
 data Capacity = INDEXES | TOTAL | NONE deriving (Show)
 
--- ------------------------------------------------------------------------------
--- -- | Batch Get Item
--- data BatchGetItem = BatchGetItem {
---      batchGetItemRequestItems :: [RequestItem] -- ^ Required
---    , returnConsumedCapacity :: Bool -- ^ Not Required, -- Valid Values, INDEXES, TOTAL, NONE
---   } deriving (Show, Eq)
-
--- data RequestItem = RequestItem
---     { requestItemTableName :: Text
---     , requestItemKeys      :: [Item]
---     , requestItemConsistentRead :: Bool -- ^ Not Required, default False
---     } deriving (Show, Eq)
-
--- instance ToJSON RequestItem where
---   toJSON RequestItem{..} = object [ "RequestItems" .=   ]
-
-
-
