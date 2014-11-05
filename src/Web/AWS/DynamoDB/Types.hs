@@ -105,3 +105,25 @@ type ItemValue = Text
 data Item = Item ItemName DynamoType ItemValue
 data Capacity = INDEXES | TOTAL | NONE deriving (Show)
 
+------------------------------------------------------------------------------
+-- | Select on Query's
+-- If not specified DynamoDB will default to ALL_Attributes
+data Select =
+    AllAttributes -- ^ Returns all of the item attributes from the specified table or index
+  | AllProjectedAttributes -- ^ Only for querying an Index
+  | Count -- ^ Returns the number of matching items rather than the matching items themselves
+  | SpecificAttributes -- ^ Returns only the attributes listed in 'AttributesToGet'
+
+instance ToJSON Select where
+  toJSON AllAttributes = String "ALL_ATTRIBUTES"
+  toJSON AllProjectedAttributes = String "ALL_PROJECTED_ATTRIBUTES"
+  toJSON SpecificAttributes = String "SPECIFIC_ATTRIBUTES"
+  toJSON Count = String "COUNT"
+
+
+data ComparisonOperator =
+  GT | LT | EQ | LE | GE | BEGINS_WITH | BETWEEN
+  deriving (Show)
+
+instance ToJSON ComparisonOperator where
+  toJSON = String . toText 
