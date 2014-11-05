@@ -8,39 +8,35 @@
 -- Portability : POSIX
 module Web.AWS.DynamoDB.PutItem where
 
+import           Data.Aeson
+import qualified Data.Text as T
+import           Data.Text    (Text)
+
 import           Web.AWS.DynamoDB.Client
 import           Web.AWS.DynamoDB.Types
+import           Web.AWS.DynamoDB.Helpers
 
 ------------------------------------------------------------------------------
 -- | Make Request
 putItem :: PutItem -> IO ()
 putItem = callDynamo "PutItem" 
 
+putItemDefault :: Text -> [Item] -> IO ()
+putItemDefault name items =
+  callDynamo "PutItem" $
+    PutItem items name Nothing Nothing Nothing Nothing Nothing Nothing 
+
 test :: IO ()
-test = putItem $ PutItem
-       [ Item "ID" S "1"
-       , Item "Name" S "DJ"
+test = putItemDefault "Dogs"
+       [ Item "ID" S "2"
+       , Item "Age" N "21"
        ]
-       "People"
-       Nothing
-       Nothing
-       Nothing
-       Nothing
-       Nothing
-       Nothing
 
 test2 :: IO ()
-test2 = putItem $ PutItem
+test2 = putItemDefault "People" 
        [ Item "ID" S "2"
        , Item "Name" S "Alex"
-       ]
-       "People"
-       Nothing
-       Nothing
-       Nothing
-       Nothing
-       Nothing
-       Nothing
+       ] 
        
 ------------------------------------------------------------------------------
 -- | PutItem
@@ -54,7 +50,7 @@ data PutItem = PutItem {
    , putItemReturnConsumedCapacity      :: Maybe Text -- ^ Not Required 
    , putItemReturnItemCollectionMetrics :: Maybe Text -- ^ Not Required 
    , putItemReturnValues                :: Maybe Text -- ^ Not Required 
-  }
+  } 
 
 instance ToJSON PutItem where
   toJSON PutItem{..} =
@@ -63,10 +59,10 @@ instance ToJSON PutItem where
            ,  "TableName" .= putItemTableName
            ]
 
-data PutItemResponse = PutItemResponse deriving (Show, Eq)
+-- data PutItemResponse = PutItemResponse deriving (Show, Eq)
 
-instance FromJSON PutItemResponse where
-   parseJSON (Object o) = pure PutItemResponse
-   parseJSON _ = mzero
+-- instance FromJSON PutItemResponse where
+--    parseJSON (Object o) = pure PutItemResponse
+--    parseJSON _ = mzero
            
 
