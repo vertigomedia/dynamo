@@ -9,6 +9,7 @@
 -- Portability : POSIX
 module Web.AWS.DynamoDB.Client where
 
+import           Control.Exception
 import           Data.Aeson
 import           Data.ByteString (ByteString)
 import qualified Data.ByteString.Lazy as L
@@ -42,9 +43,14 @@ callDynamo op bs = do
      , requestHeaders = heads
      , requestBody = stream $ PB.fromLazy (encode bs)
     }
-  withManager tlsManagerSettings $ \m ->
-     withHTTP req' m $ \resp -> do
-     runEffect $ responseBody resp >-> PB.stdout
+  withManager tlsManagerSettings $ \m -> do
+     res <- try (withHTTP req' m $ \resp -> do
+              runEffect $ responseBody resp >-> PB.stdout) :: IO (Either HttpException ()) 
+     print res
+     case res of
+       Left (StatusCodeException _ headers _) -> 
+         do print "caught"
+       _ -> print "all good"
   where
     createRequest :: ByteString -> Operation -> IO (Either String RequestHeaders)
     createRequest payload operation = do
