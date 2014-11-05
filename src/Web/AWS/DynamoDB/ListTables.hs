@@ -11,10 +11,10 @@ import           Data.Time
 
 ------------------------------------------------------------------------------
 -- | Make Request
-listTables :: ListTables -> IO (Either String Object)
+listTables :: ListTables -> IO ()
 listTables tables = callDynamo "ListTables" tables
 
-test :: IO (Either String Object)
+test :: IO ()
 test = listTables $ ListTables Nothing Nothing
 
 ------------------------------------------------------------------------------
@@ -39,12 +39,12 @@ instance ToJSON ListTables where
 
 data ListTableResponse = ListTableResponse {
       lastEvaluatedTableName :: Maybe Text
-    , tableNames             :: [Text]
+    , tableNames             :: Maybe [Text]
   } deriving (Show)
 
 instance FromJSON ListTableResponse where
   parseJSON (Object o) =
-    ListTableResponse <$> o .: "LastEvalutedTableName"
+    ListTableResponse <$> o .:? "LastEvalutedTableName"
                       <*> o .: "TableNames"
 
 
