@@ -18,18 +18,18 @@ import           Web.AWS.DynamoDB.Helpers
 
 ------------------------------------------------------------------------------
 -- | Make Request
-deleteItem :: DeleteItem -> IO ()
-deleteItem = callDynamo "DeleteItem" 
+-- deleteItem :: DeleteItem -> IO ()
+-- deleteItem = callDynamo "DeleteItem" 
 
-test :: IO ()
-test = deleteItem $ DeleteItem
-       [ Item "ID" S "1"
-       ] "People"
+-- test :: IO ()
+-- test = deleteItem $ DeleteItem
+--        [ Item "ID" S "1"
+--        ] "People"
 
-test2 :: IO ()
-test2 = deleteItem $ DeleteItem
-       [ Item "ID" S "2"
-       ] "People"
+-- test2 :: IO ()
+-- test2 = deleteItem $ DeleteItem
+--        [ Item "ID" S "2"
+--        ] "People"
 
 ------------------------------------------------------------------------------
 -- | Types

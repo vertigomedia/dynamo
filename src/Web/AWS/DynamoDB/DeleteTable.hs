@@ -18,11 +18,11 @@ import           Data.Time
 
 ------------------------------------------------------------------------------
 -- | Make Request
-deleteTable :: DeleteTable -> IO ()
+deleteTable :: DeleteTable -> IO (Either String Value)
 deleteTable = callDynamo "DeleteTable" 
 
 test :: IO ()
-test = deleteTable DeleteTable { deleteTableName = "People" }
+test = print =<< (deleteTable DeleteTable { deleteTableName = "People" })
 
 ------------------------------------------------------------------------------
 -- | Types

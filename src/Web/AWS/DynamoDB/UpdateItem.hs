@@ -17,7 +17,7 @@ import           Web.AWS.DynamoDB.Helpers
 
 ------------------------------------------------------------------------------
 -- | Make Request
-updateItem :: UpdateItem -> IO ()
+updateItem :: UpdateItem -> IO (Either String Value)
 updateItem = callDynamo "UpdateItem" 
 
 test :: IO ()
@@ -33,7 +33,7 @@ test = do
              }
   print (encode u')
   putStrLn ""
-  updateItem u
+  print =<< (updateItem u)
 
 updateItemDefault :: Text -> [Item] -> UpdateItem 
 updateItemDefault name keys =

@@ -16,11 +16,11 @@ import           Web.AWS.DynamoDB.Types
 
 ------------------------------------------------------------------------------
 -- | Make Request
-updateTable :: UpdateTable -> IO ()
+updateTable :: UpdateTable -> IO (Either String Value)
 updateTable = callDynamo "UpdateTable" 
 
 test :: IO ()
-test = updateTable $ UpdateTable "Dogs" (Throughput 8 8)
+test = print =<< (updateTable $ UpdateTable "Dogs" (Throughput 8 8))
 
 ------------------------------------------------------------------------------
 -- | Update Provisioned Throughput on Table

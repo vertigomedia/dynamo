@@ -15,11 +15,11 @@ import           Web.AWS.DynamoDB.Client
 
 ------------------------------------------------------------------------------
 -- | Make Request
-describeTable :: DescribeTable -> IO ()
+describeTable :: DescribeTable -> IO (Either String Value)
 describeTable dt = callDynamo "DescribeTable" dt
 
 test :: IO ()
-test = describeTable $ DescribeTable "Dogs"
+test = print =<< describeTable (DescribeTable "Dogs")
 
 ------------------------------------------------------------------------------
 -- | Types

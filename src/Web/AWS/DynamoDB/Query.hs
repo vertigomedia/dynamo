@@ -18,19 +18,19 @@ import           Web.AWS.DynamoDB.Types
 
 ------------------------------------------------------------------------------
 -- | Make Request
-query :: Query -> IO ()
-query = callDynamo "Query" 
+-- query :: Query -> IO ()
+-- query = callDynamo "Query" 
 
-test :: IO ()
-test = do
-    print (encode thing)
-    putStrLn ""
-    query thing
-  where thing = let q = defaultQuery "Dogs" [
-                      Condition "ID" [AttributeValue S "2"] EQ
---                 ,  Condition "Age" [AttributeValue N "19"] EQ
-                      ] 
-                in q { querySelect = Just Count }
+-- test :: IO ()
+-- test = do
+--     print (encode thing)
+--     putStrLn ""
+--     query thing
+--   where thing = let q = defaultQuery "Dogs" [
+--                       Condition "ID" [AttributeValue S "2"] EQ
+-- --                 ,  Condition "Age" [AttributeValue N "19"] EQ
+--                       ] 
+--                 in q { querySelect = Just Count }
 
 defaultQuery :: Text -> [Condition] -> Query
 defaultQuery t cs = Query t cs Nothing Nothing Nothing

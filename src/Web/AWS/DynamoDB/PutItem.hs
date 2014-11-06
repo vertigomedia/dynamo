@@ -17,20 +17,19 @@ import           Web.AWS.DynamoDB.Helpers
 
 ------------------------------------------------------------------------------
 -- | Make Request
-putItem :: PutItem -> IO ()
-putItem = callDynamo "PutItem" 
+-- putItem :: PutItem -> IO (Either String Value)
+-- putItem = callDynamo "PutItem" 
 
-putItemDefault :: Text -> [Item] -> IO ()
-putItemDefault name items =
-  callDynamo "PutItem" $
-    PutItem items name Nothing Nothing Nothing Nothing Nothing Nothing 
+-- putItemDefault name items = do
+--   res <- callDynamo "PutItem" $ PutItem items name Nothing Nothing Nothing Nothing Nothing Nothing
+--   print res
 
-test :: IO ()
-test = putItemDefault "Dogs"
-       [ Item "ID" S "8"
-       , Item "Age" N "8"
-       , Item "Num" N "8"
-       ]
+-- test :: IO ()
+-- test = putItemDefault "Dogs"
+--        [ Item "ID" S "8"
+--        , Item "Age" N "8"
+--        , Item "Num" N "8"
+--        ]
 
 -- test2 :: IO ()
 -- test2 = putItemDefault "People" 

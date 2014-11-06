@@ -11,7 +11,7 @@ import           Data.Time
 
 ------------------------------------------------------------------------------
 -- | Make Request
-listTables :: ListTables -> IO (Either String ListTableResponse)
+listTables :: ListTables -> IO (Either String Value)
 listTables = callDynamo "ListTables" 
 
 test :: IO ()

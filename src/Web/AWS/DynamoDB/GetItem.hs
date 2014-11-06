@@ -17,25 +17,25 @@ import           Web.AWS.DynamoDB.Types
 
 ------------------------------------------------------------------------------
 -- | Make Request
-getItem :: GetItem -> IO ()
+getItem :: GetItem -> IO (Either String Value)
 getItem = callDynamo "GetItem" 
 
 test :: IO ()
-test = getItem $ GetItem
+test = print =<< (getItem $ GetItem
        [ Item "ID" S "1"
-       ] "People"
+       ] "People")
 
 test2 :: IO ()
-test2 = getItem $ GetItem
+test2 = print =<< (getItem $ GetItem
        [ Item "ID" S "8"
        , Item "Age" N "8"
-       ] "Dogs"
+       ] "Dogs")
 
 test3 :: IO ()
-test3 = getItem $ GetItem
+test3 = print =<< (getItem $ GetItem
        [ Item "ID" S "9"
        , Item "Age" N "99"
-       ] "Dogs"
+       ] "Dogs")
 
 ------------------------------------------------------------------------------
 -- | Types

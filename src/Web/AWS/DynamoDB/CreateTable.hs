@@ -15,17 +15,17 @@ import           Web.AWS.DynamoDB.Types
 
 ------------------------------------------------------------------------------
 -- | Make Request
-createTable :: CreateTable -> IO ()
-createTable = callDynamo "CreateTable" 
+-- createTable :: CreateTable -> IO ()
+-- createTable = callDynamo "CreateTable" 
 
-test :: IO ()
-test = createTable $ CreateTable [ AttributeDefinitions "ID" S
-                                 , AttributeDefinitions "Age" N
-                                 ] Nothing
-                                 [ KeySchema "ID" Hash
-                                 , KeySchema "Age" Range ] Nothing
-                                 (Throughput 1 1)
-                                 "Dogs"
+-- test :: IO ()
+-- test = createTable $ CreateTable [ AttributeDefinitions "ID" S
+--                                  , AttributeDefinitions "Age" N
+--                                  ] Nothing
+--                                  [ KeySchema "ID" Hash
+--                                  , KeySchema "Age" Range ] Nothing
+--                                  (Throughput 1 1)
+--                                  "Dogs"
 
 ------------------------------------------------------------------------------
 -- | Types
