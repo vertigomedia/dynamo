@@ -10,7 +10,7 @@
 
 module Web.AWS.DynamoDB.Types where
 
-import           Control.Applicative (pure)
+import           Control.Applicative (pure, (<$>), (<*>))
 import           Data.Text    (Text,pack)
 import           Data.Char
 import           Data.Aeson
@@ -46,6 +46,19 @@ data DynamoType =
 instance ToJSON DynamoType where
   toJSON = String . toText
 
+instance FromJSON DynamoType where
+   parseJSON (String "S") = pure S
+   parseJSON (String "N") = pure N
+   parseJSON (String "B") = pure B
+   parseJSON (String "BOOL") = pure BOOL
+   parseJSON (String "NULL") = pure NULL
+   parseJSON (String "SS") = pure SS
+   parseJSON (String "NS") = pure NS
+   parseJSON (String "BS") = pure BS
+   parseJSON (String "L") = pure L
+   parseJSON (String "M") = pure M
+   parseJSON _ = mzero
+
 ------------------------------------------------------------------------------
 -- | Attribute Defintions
 data AttributeDefinitions = AttributeDefinitions {
@@ -59,6 +72,12 @@ instance ToJSON AttributeDefinitions where
         "AttributeName" .= attributeName
       , "AttributeType" .= attributeType
       ]
+
+instance FromJSON AttributeDefinitions where
+   parseJSON (Object o) = 
+     AttributeDefinitions <$> o .: "AttributeName"
+                          <*> o .: "AttributeType"
+   parseJSON _ = mzero
 
 ------------------------------------------------------------------------------
 -- | Key Type
