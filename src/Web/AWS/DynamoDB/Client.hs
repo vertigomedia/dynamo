@@ -32,13 +32,13 @@ import           Pipes.Attoparsec (parse, ParsingError(..))
 type Operation = ByteString
 
 dev :: Bool
-dev = False
+dev = True
 
-data DynamoError = ProducerExhausted | ParseError
+data DynamoError = ProducerExhausted | ParseError | Err String deriving (Show)
 
 callDynamo ::
-  (FromJSON a1, ToJSON a) =>
-  Operation -> a -> IO (Maybe (Either ParsingError (Result a1)))
+  (FromJSON b, ToJSON a) =>
+  Operation -> a -> IO (Either DynamoError b)
 callDynamo op bs = do
   let url = bool "https://dynamodb.us-east-1.amazonaws.com:443" "http://localhost:8000" dev
   req <- parseUrl url
@@ -54,10 +54,16 @@ callDynamo op bs = do
   res <- withManager tlsManagerSettings $ \m -> 
            withHTTP req' m $ \resp -> do
              evalStateT (parse $ fromJSON <$> json') (responseBody resp)
-                   -- case result of
-                   --   Left (ParsingError x) -> return $ Left x
-                   --   Right val -> Right val
-  return res
+  return $ case res of
+    Nothing -> Left ParseError
+    Just x -> 
+      case x of
+        Left pe -> Left ParseError
+        Right y -> 
+          case y of
+            Success x -> Right x
+            Error g -> Left $ Err g
+
   -- return $ case res of
   --   Left (StatusCodeException _ headers _) -> 
   --     case lookup "X-Response-Body-Start" headers of
