@@ -9,11 +9,13 @@
 -- Portability : POSIX
 module Web.AWS.DynamoDB.Client where
 
+import           Control.Applicative
 import           Control.Exception
 import           Data.Aeson
+import           Data.Maybe
 import           Data.ByteString (ByteString)
 import qualified Data.ByteString.Lazy as L
-import           Control.Monad.Trans.State
+import           Control.Monad.Trans.State.Strict
 import           Data.Monoid
 import           Data.Bool
 import           Data.Time
@@ -22,41 +24,46 @@ import           Network.HTTP.Types.Header
 import           Aws.SignatureV4
 import           Aws.General hiding (parse)
 
-import           Pipes
 import           Pipes.HTTP
 import qualified Pipes.ByteString as PB 
 import           Web.AWS.DynamoDB.Helpers
-
-import           Data.Aeson.Parser (json)
-import           Pipes.Attoparsec (parse)
+import           Pipes.Attoparsec (parse, ParsingError(..))
 
 type Operation = ByteString
 
 dev :: Bool
-dev = True
+dev = False
 
-callDynamo :: ToJSON a => Operation -> a -> IO ()
+data DynamoError = ProducerExhausted | ParseError
+
+callDynamo ::
+  (ToJSON a) =>
+  Operation -> a -> IO (Maybe (Either ParsingError Value))
 callDynamo op bs = do
-  let url = bool "https://dynamodb.us-east-1.amazonaws.com" "http://localhost:8000" dev
+  let url = bool "https://dynamodb.us-east-1.amazonaws.com:443" "http://localhost:8000" dev
   req <- parseUrl url
   let rawjson = L.toStrict $ encode bs
-  --print rawjson
+  print rawjson
   Right heads <- createRequest rawjson op
   let req' = req {
        method = "POST"
      , requestHeaders = heads
      , requestBody = stream $ PB.fromLazy (encode bs)
     }
-  res <- try $ withManager tlsManagerSettings $ \m -> 
-                 withHTTP req' m $ \resp -> do
-                 runEffect $ responseBody resp >-> PB.stdout
-  print res
-  case res of
-    Left (StatusCodeException _ headers _) -> 
-      case lookup "X-Response-Body-Start" headers of
-        Nothing -> print "no body?"
-        Just x -> print x
-    Right body -> print body
+  print req'
+  res <- withManager tlsManagerSettings $ \m -> 
+           withHTTP req' m $ \resp -> do
+             evalStateT (parse json') (responseBody resp)
+                   -- case result of
+                   --   Left (ParsingError x) -> return $ Left x
+                   --   Right val -> Right val
+  return res
+  -- return $ case res of
+  --   Left (StatusCodeException _ headers _) -> 
+  --     case lookup "X-Response-Body-Start" headers of
+  --       Nothing -> Left "no body?"
+  --       Just x -> Left "oops"
+  --   Right body -> Right body
   where
     createRequest :: ByteString -> Operation -> IO (Either String RequestHeaders)
     createRequest payload operation = do
@@ -66,13 +73,13 @@ callDynamo op bs = do
       signPostRequestIO creds UsEast1 ServiceNamespaceDynamodb now "POST"
            ([] :: UriPath)
            ([] :: UriQuery)
-           ([ ("host", "dynamodb.us-east-1.amazonaws.com")
-            , ("x-amz-target", "DynamoDB_20120810." <> operation)
-            , ("connection", "Keep-Alive")
-            , ("content-type", "application/x-amz-json-1.0")
-            ] :: RequestHeaders)
-            payload 
-
+             ( [("Accept-Encoding", "gzip")
+             , ("connection", "Keep-Alive")
+             , ("content-type", "application/x-amz-json-1.0")
+             , ("Host", "dynamodb.us-east-1.amazonaws.com:443")
+             , ("x-amz-target", "DynamoDB_20120810." <> operation)
+             ] :: RequestHeaders)
+             payload
 
 
 
