@@ -38,11 +38,9 @@ library
                      , either
                      , http-types
                      , mtl
-                     , pipes
-                     , pipes-aeson
-                     , pipes-attoparsec >= 0.5.1.1
-                     , pipes-bytestring
-                     , pipes-http
+                     , http-streams
+                     , HsOpenSSL
+                     , io-streams
                      , text
                      , time
                      , transformers >= 0.4.1.0

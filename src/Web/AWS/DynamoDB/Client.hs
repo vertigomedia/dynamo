@@ -13,51 +13,52 @@ import           Control.Exception
 import           Data.Aeson
 import           Data.ByteString (ByteString)
 import qualified Data.ByteString.Lazy as L
-import           Control.Monad.Trans.State
 import           Data.Monoid
 import           Data.Bool
 import           Data.Time
+import           Data.CaseInsensitive
 
 import           Network.HTTP.Types.Header
 import           Aws.SignatureV4
 import           Aws.General hiding (parse)
-
-import           Pipes
-import           Pipes.HTTP
-import qualified Pipes.ByteString as PB 
+import           Network.Http.Client
 import           Web.AWS.DynamoDB.Helpers
-
-import           Data.Aeson.Parser (json)
-import           Pipes.Attoparsec (parse)
+import           OpenSSL
+import qualified System.IO.Streams as S
 
 type Operation = ByteString
 
 dev :: Bool
-dev = True
+dev = False
 
-callDynamo :: ToJSON a => Operation -> a -> IO ()
-callDynamo op bs = do
+callDynamo :: (FromJSON b, ToJSON a) => ByteString -> a -> IO (Either String b)
+callDynamo op bs = withOpenSSL $ do
+  ctx <- baselineContextSSL
   let url = bool "https://dynamodb.us-east-1.amazonaws.com" "http://localhost:8000" dev
-  req <- parseUrl url
-  let rawjson = L.toStrict $ encode bs
-  --print rawjson
-  Right heads <- createRequest rawjson op
-  let req' = req {
-       method = "POST"
-     , requestHeaders = heads
-     , requestBody = stream $ PB.fromLazy (encode bs)
-    }
-  res <- try $ withManager tlsManagerSettings $ \m -> 
-                 withHTTP req' m $ \resp -> do
-                 runEffect $ responseBody resp >-> PB.stdout
-  print res
-  case res of
-    Left (StatusCodeException _ headers _) -> 
-      case lookup "X-Response-Body-Start" headers of
-        Nothing -> print "no body?"
-        Just x -> print x
-    Right body -> print body
+  Right heads <- createRequest (L.toStrict $ encode bs) op
+  either handleException handleConn =<<
+    if dev
+      then try (openConnectionSSL ctx "dynamodb.us-east-1.amazonaws.com" 443) :: IO (Either SomeException Connection)
+      else try (openConnection "localhost" 8000) :: IO (Either SomeException Connection) 
   where
+    handleException _ = undefined
+    handleConn conn = do
+       let jsonBody = L.toStrict $ encode bs
+       result <- createRequest op jsonBody
+       case result of
+         Left msg -> return $ Left $ "Couldn't create headers: " <> msg
+         Right headers -> do
+           stream <- S.fromByteString jsonBody
+           req <- buildRequest $ do
+              http POST "/"
+              mapM_ makeHeader headers
+           print req
+           sendRequest conn req $ inputStreamBody stream
+           json <- receiveResponse conn jsonHandler
+           closeConnection conn
+           return (Right json)
+    makeHeader :: Header -> RequestBuilder ()
+    makeHeader (key, val) = setHeader (original key) val
     createRequest :: ByteString -> Operation -> IO (Either String RequestHeaders)
     createRequest payload operation = do
       (public, private) <- getKeys
