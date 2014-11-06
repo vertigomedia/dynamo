@@ -37,8 +37,8 @@ dev = False
 data DynamoError = ProducerExhausted | ParseError
 
 callDynamo ::
-  (ToJSON a) =>
-  Operation -> a -> IO (Maybe (Either ParsingError Value))
+  (FromJSON a1, ToJSON a) =>
+  Operation -> a -> IO (Maybe (Either ParsingError (Result a1)))
 callDynamo op bs = do
   let url = bool "https://dynamodb.us-east-1.amazonaws.com:443" "http://localhost:8000" dev
   req <- parseUrl url
@@ -53,7 +53,7 @@ callDynamo op bs = do
   print req'
   res <- withManager tlsManagerSettings $ \m -> 
            withHTTP req' m $ \resp -> do
-             evalStateT (parse json') (responseBody resp)
+             evalStateT (parse $ fromJSON <$> json') (responseBody resp)
                    -- case result of
                    --   Left (ParsingError x) -> return $ Left x
                    --   Right val -> Right val
