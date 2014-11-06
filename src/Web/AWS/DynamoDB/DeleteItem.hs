@@ -23,8 +23,9 @@ deleteItem = callDynamo "DeleteItem"
 
 test :: IO ()
 test = deleteItem $ DeleteItem
-       [ Item "ID" S "1"
-       ] "People"
+       [ Item "ID" S "8"
+       , Item "Age" N "8"
+       ] "Dogs"
 
 test2 :: IO ()
 test2 = deleteItem $ DeleteItem

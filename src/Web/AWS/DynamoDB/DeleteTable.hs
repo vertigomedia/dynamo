@@ -22,7 +22,7 @@ deleteTable :: DeleteTable -> IO ()
 deleteTable = callDynamo "DeleteTable" 
 
 test :: IO ()
-test = deleteTable DeleteTable { deleteTableName = "People" }
+test = deleteTable DeleteTable { deleteTableName = "Dogs" }
 
 ------------------------------------------------------------------------------
 -- | Types

@@ -20,8 +20,10 @@ import           Web.AWS.DynamoDB.Helpers
 updateItem :: UpdateItem -> IO ()
 updateItem = callDynamo "UpdateItem" 
 
-test :: IO ()
-test = do
+------------------------------------------------------------------------------
+-- | Update example
+testu :: IO ()
+testu = do
   let u = updateItemDefault "Dogs" [
           Item "ID" S "8"
         , Item "Age" N "8"
@@ -29,11 +31,26 @@ test = do
   let u' = u { updateItemUpdateExpression = Just "set Num = :val1"
              , updateItemExpressionAttributeValues = Just [ Item ":val1" N "9" ]
              , updateItemReturnValues = Just ALL_NEW
-             , updateItemConditionExpression = Just "Num = 8"
              }
   print (encode u')
   putStrLn ""
-  updateItem u
+  updateItem u'
+
+------------------------------------------------------------------------------
+-- | Atomic Counter Example
+testa :: IO ()
+testa = do
+  let u = updateItemDefault "Dogs" [
+          Item "ID" S "8"
+        , Item "Age" N "8"
+        ]
+  let u' = u { updateItemUpdateExpression = Just "set Num = Num + :val1"
+             , updateItemExpressionAttributeValues = Just [ Item ":val1" N "1" ]
+             , updateItemReturnValues = Just ALL_NEW
+             }
+  print (encode u')
+  putStrLn ""
+  updateItem u'
 
 updateItemDefault :: Text -> [Item] -> UpdateItem 
 updateItemDefault name keys =
@@ -75,8 +92,3 @@ instance ToJSON UpdateItem where
                             in Just $ object x
            , "ReturnValues" .= updateItemReturnValues
            ]
-
-
-
-
-

@@ -103,7 +103,8 @@ type ItemName = Text
 type ItemValue = Text
 
 data Item = Item ItemName DynamoType ItemValue
-data Capacity = INDEXES | TOTAL | NONE deriving (Show)
+data Capacity = INDEXES | TOTAL -- NONE
+   deriving (Show)
 
 ------------------------------------------------------------------------------
 -- | Select on Query's
