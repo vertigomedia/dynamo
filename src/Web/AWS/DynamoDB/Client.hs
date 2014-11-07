@@ -9,10 +9,10 @@
 -- Portability : POSIX
 module Web.AWS.DynamoDB.Client where
 
-import           Control.Applicative
 import           Control.Exception
-import           Data.Aeson
+import           Control.Applicative
 import           Data.Maybe
+import           Data.Aeson
 import           Data.ByteString (ByteString)
 import qualified Data.ByteString.Lazy as L
 import           Control.Monad.Trans.State.Strict
@@ -20,6 +20,7 @@ import           Data.Monoid
 import           Data.Bool
 import           Data.Time
 
+import           Network.HTTP.Types.Status
 import           Network.HTTP.Types.Header
 import           Aws.SignatureV4
 import           Aws.General hiding (parse)
@@ -27,14 +28,14 @@ import           Aws.General hiding (parse)
 import           Pipes.HTTP
 import qualified Pipes.ByteString as PB 
 import           Web.AWS.DynamoDB.Helpers
-import           Pipes.Attoparsec (parse, ParsingError(..))
+import           Pipes.Attoparsec (parse) -- ParsingError(..)
+
+import           Web.AWS.DynamoDB.Types
 
 type Operation = ByteString
 
 dev :: Bool
 dev = True
-
-data DynamoError = ProducerExhausted | ParseError | Err String deriving (Show)
 
 callDynamo ::
   (FromJSON b, ToJSON a) =>
@@ -51,25 +52,32 @@ callDynamo op bs = do
      , requestBody = stream $ PB.fromLazy (encode bs)
     }
   print req'
-  res <- withManager tlsManagerSettings $ \m -> 
+  res <- try (withManager tlsManagerSettings $ \m -> 
            withHTTP req' m $ \resp -> do
-             evalStateT (parse $ fromJSON <$> json') (responseBody resp)
-  return $ case res of
-    Nothing -> Left ParseError
-    Just x -> 
-      case x of
-        Left pe -> Left ParseError
-        Right y -> 
-          case y of
-            Success x -> Right x
-            Error g -> Left $ Err g
-
-  -- return $ case res of
-  --   Left (StatusCodeException _ headers _) -> 
-  --     case lookup "X-Response-Body-Start" headers of
-  --       Nothing -> Left "no body?"
-  --       Just x -> Left "oops"
-  --   Right body -> Right body
+             evalStateT (parse $ fromJSON <$> json') (responseBody resp))
+  case res of
+    Left e -> 
+      case fromException e of
+        Just (StatusCodeException (Status num _) headers _) -> do
+              let errorJson = fromJust $ decodeStrict $ fromJust $ lookup "X-Response-Body-Start" headers
+              case num of
+                code | code >= 400 && code < 500 -> do
+                         print headers
+                         return $ Left $ ClientError code errorJson
+                     | code >= 500 -> do
+                         print headers
+                         return $ Left $ ServerError code errorJson
+        Nothing -> return $ Left $ UnknownError (show e)
+    Right resp -> 
+     case resp of
+       Nothing -> return $ Left ParseError
+       Just x -> 
+         case x of
+           Left pe -> return $ Left ParseError
+           Right y -> 
+             case y of
+               Success x -> return $ Right x
+               Error g -> return $ Left $ Err g
   where
     createRequest :: ByteString -> Operation -> IO (Either String RequestHeaders)
     createRequest payload operation = do
