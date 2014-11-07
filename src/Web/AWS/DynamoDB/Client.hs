@@ -60,6 +60,7 @@ callDynamo op bs = do
       case fromException e of
         Just (StatusCodeException (Status num _) headers _) -> do
               let errorJson = fromJust $ decodeStrict $ fromJust $ lookup "X-Response-Body-Start" headers
+              print errorJson
               case num of
                 code | code >= 400 && code < 500 -> do
                          print headers

@@ -1,4 +1,4 @@
-{-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE RecordWildCards   #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RankNTypes        #-}
 -- |
@@ -12,6 +12,8 @@ module Web.AWS.DynamoDB.Types where
 
 import           Control.Applicative (pure, (<$>), (<*>))
 import           Data.Text           (Text, pack, unpack, split)
+import           Data.Maybe
+import           Data.Time
 import           Data.Char
 import           Data.Aeson
 import           Text.Read  hiding (String)
@@ -62,45 +64,57 @@ instance FromJSON DynamoType where
 
 ------------------------------------------------------------------------------
 -- | Attribute Defintions
-data AttributeDefinitions = AttributeDefinitions {
+data AttributeDefinition = AttributeDefinition {
       attributeName :: Text        -- ^ A name for the attribute, Minimum length of 1. Maximum length of 255, Required 
     , attributeType :: DynamoType  -- ^ Required, valid values : S | N | B
   } deriving (Show, Eq)
 
-instance ToJSON AttributeDefinitions where
-  toJSON AttributeDefinitions{..} =
+instance ToJSON AttributeDefinition where
+  toJSON AttributeDefinition{..} =
     object [
         "AttributeName" .= attributeName
       , "AttributeType" .= attributeType
       ]
 
-instance FromJSON AttributeDefinitions where
+instance FromJSON AttributeDefinition where
    parseJSON (Object o) = 
-     AttributeDefinitions <$> o .: "AttributeName"
-                          <*> o .: "AttributeType"
+     AttributeDefinition <$> o .: "AttributeName"
+                         <*> o .: "AttributeType"
    parseJSON _ = mzero
 
 ------------------------------------------------------------------------------
 -- | Key Type
 data KeyType =
-    Hash
-  | Range
+    HASH
+  | RANGE
   deriving (Show, Eq)
 
 instance ToJSON KeyType where
-  toJSON = String . pack . map toUpper . show
+  toJSON = String . toText
+
+instance FromJSON KeyType where
+   parseJSON (String "HASH") = pure HASH
+   parseJSON (String "Range") = pure RANGE
+   parseJSON _ = mzero
 
 ------------------------------------------------------------------------------
 -- | Key Schema
 data KeySchema = KeySchema {
-      keyAttributeName :: Text    -- ^ Required, Minimum length of 1. Maximum length of 255.
-    , keyType          :: KeyType -- ^ Required, HASH or RANGE
+      keySchemaAttributeName :: Text    -- ^ Required, Minimum length of 1. Maximum length of 255.
+    , keySchemaType          :: KeyType -- ^ Required, HASH or RANGE
   } deriving (Show, Eq)
 
 instance ToJSON KeySchema where
-  toJSON KeySchema{..} = object [ "AttributeName" .= keyAttributeName
-                                , "KeyType" .= keyType
-                                ]
+  toJSON KeySchema{..} = object [
+      "AttributeName" .= keySchemaAttributeName
+    , "KeyType" .= keySchemaType
+    ]
+
+instance FromJSON KeySchema where
+   parseJSON (Object o) =
+     KeySchema <$> o .: "AttributeName"
+               <*> o .: "KeyType"
+ 
 
 ------------------------------------------------------------------------------
 -- | Provisioned ThroughPut
@@ -109,6 +123,9 @@ instance ToJSON KeySchema where
 data Throughput = Throughput {
      readCapacityUnits :: Int -- ^ Required, Long, The maximum number of strongly consistent reads consumed per second before DynamoDB returns a ThrottlingException
    , writeCapacityUnits :: Int -- ^ Required, Long, The maximum number of writes consumed per second before DynamoDB returns a ThrottlingException
+   , lastIncreaseDateTime :: Maybe UTCTime
+   , lastDecreaseDateTime :: Maybe UTCTime
+   , numberOfDecreasesToday :: Maybe UTCTime
   } deriving (Show, Eq)
 
 instance ToJSON Throughput where
@@ -116,6 +133,14 @@ instance ToJSON Throughput where
     object [ "ReadCapacityUnits" .= readCapacityUnits
            , "WriteCapacityUnits" .= writeCapacityUnits
            ]
+
+instance FromJSON Throughput where
+   parseJSON (Object o) =
+     Throughput <$> o .: "ReadCapacityUnits"
+                <*> o .: "WriteCapacityUnits"
+                <*> (fmap fromSeconds <$> o .:? "LastIncreaseDateTime")
+                <*> (fmap fromSeconds <$> o .:? "LastDecreaseDateTime")
+                <*> (fmap fromSeconds <$> o .:? "NumberOfDecreasesToday")
 
 ------------------------------------------------------------------------------
 -- | Item for insertion or retrieval
@@ -141,13 +166,96 @@ instance ToJSON Select where
   toJSON SpecificAttributes = String "SPECIFIC_ATTRIBUTES"
   toJSON Count = String "COUNT"
 
-
 data ComparisonOperator =
   GT | LT | EQ | LE | GE | BEGINS_WITH | BETWEEN
   deriving (Show)
 
 instance ToJSON ComparisonOperator where
   toJSON = String . toText 
+
+------------------------------------------------------------------------------
+-- | Primary Key
+type KeyName = Text
+
+data Key = Key { keyName :: KeyName
+               , keyType :: DynamoType
+               } deriving (Show, Eq)
+
+data PrimaryKeyType = HashAndRangeType { hashKey :: Key, rangeKey :: Key }
+                    | HashType { hashKey :: Key }
+                      deriving (Show, Eq)
+
+
+------------------------------------------------------------------------------
+-- | Global Secondary Indexes
+data GlobalSecondaryIndex = GlobalSecondaryIndex {
+    gsiIndexName      :: Text
+  , gsiIndexSizeBytes :: Int
+  , gsiIndexStatus    :: Status
+  , gsiItemCount      :: Int
+  , gsiKeySchema      :: [KeySchema]
+  , gsiProjection     :: Projection
+  , gsiProvisionedThroughput :: Throughput
+  } deriving (Show, Eq)
+
+instance FromJSON GlobalSecondaryIndex where
+   parseJSON (Object o) =
+     GlobalSecondaryIndex <$> o .: "IndexName"
+                          <*> o .: "IndexSizeBytes"
+                          <*> o .: "IndexStatus"
+                          <*> o .: "ItemCount"
+                          <*> o .: "KeySchema"
+                          <*> o .: "Projection"
+                          <*> o .: "ProvisionedThroughput"
+   parseJSON _ = mzero
+
+instance ToJSON GlobalSecondaryIndex where
+  toJSON GlobalSecondaryIndex{..} =
+    object [
+             "IndexName" .= gsiIndexName
+           , "KeySchema" .= gsiKeySchema
+           ]
+
+
+data Status =
+    CREATING
+  | UPDATING
+  | DELETING
+  | ACTIVE
+  | UnknownStatus
+  deriving (Show, Eq, Read)
+
+instance FromJSON Status where
+   parseJSON (String x) =
+     pure $ case readMaybe (unpack x) :: Maybe Status of
+      Just x -> x
+      Nothing -> UnknownStatus
+
+data Projection = Projection {
+      nonKeyAttributes :: [Text]
+    , projectionType :: ProjectionType
+  } deriving (Show, Eq)
+
+instance FromJSON Projection where
+   parseJSON (Object o) =
+     Projection <$> o .: "NonKeyAttributes"
+                <*> o .: "ProjectionType"
+   parseJSON _ = mzero
+
+data ProjectionType =
+    KEYS_ONLY -- ^ Only the index and primary keys are projected into the index
+  | INCLUDE   -- ^ Only the specified table attributes are projected into the index. The list of projected
+              -- attributes are in NonKeyAttributes
+  | ALL       -- ^ All of the table attributes are projected into the index
+  | UnknownProjectionType  -- ^ Not known
+  deriving (Show, Eq, Read)
+
+instance FromJSON ProjectionType where
+   parseJSON (String x) =
+     pure $ case readMaybe (unpack x) :: Maybe ProjectionType of
+             Nothing -> UnknownProjectionType
+             Just x -> x
+
 
 ------------------------------------------------------------------------------
 -- | Error Handling Types
