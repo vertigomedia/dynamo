@@ -1,50 +1,64 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
-module Web.AWS.DynamoDB.ListTables where
+module Web.AWS.DynamoDB.ListTables
+       ( -- * API
+         listTables
+         -- * Types
+       , ListTables         (..)
+       , ListTablesResponse (..)
+       ) where
 
-import           Control.Applicative
-import           Data.Aeson
-import           Data.Text    (Text)
-import           Web.AWS.DynamoDB.Client
+import           Control.Applicative     ( (<$>)
+                                         , (<*>) )
+import           Control.Monad           ( mzero )
+import           Data.Aeson              ( FromJSON (..)
+                                         , ToJSON   (..)
+                                         , Value    (..)
+                                         , object
+                                         , (.=)
+                                         , (.:?)
+                                         , (.:) )
+import           Data.Text               ( Text )
+
 import           Web.AWS.DynamoDB.Types
-import           Data.Time
+import           Web.AWS.DynamoDB.Client
 
 ------------------------------------------------------------------------------
 -- | Make Request
-listTables :: ListTables -> IO ()
+listTables :: ListTables -> IO (Either DynamoError ListTablesResponse)
 listTables tables = callDynamo "ListTables" tables
 
-test :: IO ()
+test :: IO (Either DynamoError ListTablesResponse)
 test = listTables $ ListTables Nothing Nothing
 
 ------------------------------------------------------------------------------
--- | TableRespone
-data TableResponse = TableResponse {
-     tableResponseAttributeDefintions :: [AttributeDefinitions]
-   , tableResponseCreationTime        :: UTCTime
-  } deriving (Show)
-
-------------------------------------------------------------------------------
--- | List Tables
+-- | Request Types
 data ListTables = ListTables {
     exclusiveStartTableName :: Maybe Text
   , listTableRequestLimit   :: Maybe Int
   } deriving (Show)
 
+------------------------------------------------------------------------------
+-- | JSON Instances
 instance ToJSON ListTables where
   toJSON ListTables{..} = object [
       "ExclusiveStartTableName" .= exclusiveStartTableName
     , "Limit"                   .= listTableRequestLimit
     ]
 
-data ListTableResponse = ListTableResponse {
+------------------------------------------------------------------------------
+-- | Response Types
+data ListTablesResponse = ListTablesResponse {
       lastEvaluatedTableName :: Maybe Text
-    , tableNames             :: Maybe [Text]
+    , tableNames             :: [Text]
   } deriving (Show)
 
-instance FromJSON ListTableResponse where
+------------------------------------------------------------------------------
+-- | JSON Instances
+instance FromJSON ListTablesResponse where
   parseJSON (Object o) =
-    ListTableResponse <$> o .:? "LastEvalutedTableName"
-                      <*> o .: "TableNames"
+    ListTablesResponse <$> o .:? "LastEvalutedTableName"
+                       <*> o .: "TableNames"
+  parseJSON _ = mzero
 
 
