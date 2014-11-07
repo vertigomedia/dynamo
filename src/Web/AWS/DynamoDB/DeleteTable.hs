@@ -6,29 +6,50 @@
 -- Maintainer  : djohnson.m@gmail.com
 -- Stability   : experimental
 -- Portability : POSIX
-
 module Web.AWS.DynamoDB.DeleteTable where
 
-import           Control.Applicative
-import           Data.Aeson
-import           Data.Text    (Text)
+import           Control.Applicative     ( (<$>)
+                                         , (<*>) )
+import           Control.Monad           ( mzero )
+import           Data.Aeson              ( FromJSON (..)
+                                         , ToJSON   (..)
+                                         , Value    (..)
+                                         , object
+                                         , (.=)
+                                         , (.:?)
+                                         , (.:) )
+import           Data.Text               ( Text )
+
 import           Web.AWS.DynamoDB.Client
 import           Web.AWS.DynamoDB.Types
-import           Data.Time
 
 ------------------------------------------------------------------------------
 -- | Make Request
-deleteTable :: DeleteTable -> IO ()
+deleteTable :: DeleteTable -> IO (Either DynamoError DeleteTableResponse)
 deleteTable = callDynamo "DeleteTable" 
 
-test :: IO ()
+test :: IO (Either DynamoError DeleteTableResponse)
 test = deleteTable DeleteTable { deleteTableName = "Dogs" }
 
 ------------------------------------------------------------------------------
--- | Types
+-- | Request Types
 data DeleteTable = DeleteTable {
-   deleteTableName :: Text
+    deleteTableName :: Text
   } deriving (Show, Eq)
 
+------------------------------------------------------------------------------
+-- | JSON Instances
 instance ToJSON DeleteTable where
   toJSON DeleteTable{..} = object [ "TableName" .= deleteTableName ]
+
+------------------------------------------------------------------------------
+-- | Response Types
+data DeleteTableResponse = DeleteTableResponse {
+    dtrAttributeDefintions :: [AttributeDefinitions]
+  } deriving (Show)
+
+instance FromJSON DeleteTableResponse where
+   parseJSON (Object o) = do
+     table <- o .: "TableDescription"
+     DeleteTableResponse <$> table .: "AttributeDefintions"
+   parseJSON _ = mzero
