@@ -11,6 +11,8 @@ import           Control.Applicative
 import           Data.Text    (Text, pack)
 import           Data.ByteString (ByteString)
 import qualified Data.ByteString.Char8 as B8
+import           Data.Time             (UTCTime)
+import           Data.Time.Clock.POSIX (posixSecondsToUTCTime, utcTimeToPOSIXSeconds)
 
 ------------------------------------------------------------------------------
 -- | Text Helper
@@ -28,3 +30,9 @@ getKeys :: IO (ByteString, ByteString)
 getKeys = do [public, private] <- map (drop 1 . dropWhile (/=':')) . lines <$> readFile "/Users/dmj/.awskeys"
              return (B8.pack public, B8.pack private)
 
+------------------------------------------------------------------------------
+-- | Convert an `Integer` to a `UTCTime`
+fromSeconds
+  :: Integer
+  -> UTCTime
+fromSeconds = posixSecondsToUTCTime . fromInteger
