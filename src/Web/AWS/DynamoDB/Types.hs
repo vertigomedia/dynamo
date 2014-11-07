@@ -198,6 +198,13 @@ data GlobalSecondaryIndex = GlobalSecondaryIndex {
   , gsiProvisionedThroughput :: Throughput
   } deriving (Show, Eq)
 
+instance ToJSON Projection where
+  toJSON Projection{..} =
+    object [ "NonKeyAttributes" .= nonKeyAttributes
+           , "ProjectionType" .= projectionType
+           ]
+
+
 instance FromJSON GlobalSecondaryIndex where
    parseJSON (Object o) =
      GlobalSecondaryIndex <$> o .: "IndexName"
@@ -214,6 +221,7 @@ instance ToJSON GlobalSecondaryIndex where
     object [
              "IndexName" .= gsiIndexName
            , "KeySchema" .= gsiKeySchema
+           , "Projection" .= gsiProjection
            ]
 
 
@@ -256,6 +264,8 @@ instance FromJSON ProjectionType where
              Nothing -> UnknownProjectionType
              Just x -> x
 
+instance ToJSON ProjectionType where
+  toJSON = String . toText
 
 ------------------------------------------------------------------------------
 -- | Error Handling Types
