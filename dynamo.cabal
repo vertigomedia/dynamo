@@ -1,6 +1,6 @@
 name:                dynamo
 version:             0.1.0.0
-synopsis:            API Bindinds to the AWS DynamoDB service
+synopsis:            API Bindings to the AWS DynamoDB service
 license:             BSD3
 license-file:        LICENSE
 author:              David Johnson
@@ -10,20 +10,34 @@ category:            Web, DB
 build-type:          Simple
 cabal-version:       >=1.10
 description:
-    [dynamo - High Level Bindings to AWS DynamoDB]
     .
-    > module Main where
-    >
-    > import DynamoDB
+    <<https://stripe.com/img/navigation/logo@2x.png>>
+    .
+    [DynamoDB - <https://aws.amazon.com/dynamodb>]
+    DynamoDB is a Key-Value store offering by Amazon Web Services that manages and maintains your data while providing limitless scalability
+    .
+    [100% Haddock Coverage]
+    All code written for this library is documented to completion with the haddock documentation tool
+    .
+    [50+ Hspec Tests] Thoroughly unit-tested with hspec.
+    All API commands are unit-tested before inclusion into the API (see the tests directory).
+    To run the tests, perform the following:
+    .
+    >  cabal clean && cabal configure --enable-tests && cabal build spec && dist/build/spec/spec
+    .
+
+    [Database Operations - <https://stripe.com/docs/api#pagination>]
+    To get started implement the `ToDynamo` typeclass on your types.
+    By default the DynamoDB API transmits all data in JSON format. Our types take care of that for you, all that isn needed is to implement the `ToDynamo` typeclass.
+    .
+    > import Web.AWS.DynamoDB
     > 
     > main :: IO ()
-    > main = putStrLn welcome
-    >   where welcome = "Hi dynamo"
+    > main = do
+    >   let config = DynamoConfig "public key" "secret key"
+    >   print =<< dynamo config listTablesDefault 
     >
     .
-    [Issues - <http://github.com/dmjio/dynamo>]
-    Any API recommendations or bugs can be reported on the issue tracker
-
 library
   exposed-modules:     Web.AWS.DynamoDB
   other-modules:       Web.AWS.DynamoDB.Helpers
