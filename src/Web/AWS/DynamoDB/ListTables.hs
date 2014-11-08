@@ -8,6 +8,7 @@ module Web.AWS.DynamoDB.ListTables
        , ListTablesResponse (..)
        ) where
 
+import Control.Monad
 import           Control.Applicative     ( (<$>)
                                          , (<*>) )
 import           Control.Monad           ( mzero )
@@ -21,6 +22,7 @@ import           Data.Aeson              ( FromJSON (..)
 import           Data.Text               ( Text )
 
 import           Web.AWS.DynamoDB.Types
+import           Web.AWS.DynamoDB.DeleteTable hiding (test)
 import           Web.AWS.DynamoDB.Client
 
 ------------------------------------------------------------------------------
@@ -28,9 +30,14 @@ import           Web.AWS.DynamoDB.Client
 listTables :: ListTables -> IO (Either DynamoError ListTablesResponse)
 listTables tables = callDynamo "ListTables" tables
 
-test :: IO (Either DynamoError ListTablesResponse)
-test = listTables $ ListTables Nothing Nothing
+listTablesDefault :: IO (Either DynamoError ListTablesResponse)
+listTablesDefault = listTables $ ListTables Nothing Nothing
 
+testDel :: IO ()
+testDel = do Right names <- fmap tableNames <$> (listTables $ ListTables Nothing Nothing)
+             xs <- forM names $ \n -> deleteTable (DeleteTable n)
+             print xs
+ 
 ------------------------------------------------------------------------------
 -- | Request Types
 data ListTables = ListTables {

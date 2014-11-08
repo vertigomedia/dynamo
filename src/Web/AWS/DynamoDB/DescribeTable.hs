@@ -20,10 +20,10 @@ import           Web.AWS.DynamoDB.Types
 
 ------------------------------------------------------------------------------
 -- | Make Request
-describeTable :: DescribeTable -> IO (Either DynamoError DescribeTableResponse)
+describeTable :: DescribeTable -> IO (Either DynamoError TableResponse)
 describeTable = callDynamo "DescribeTable" 
 
-test :: IO (Either DynamoError DescribeTableResponse)
+test :: IO (Either DynamoError TableResponse)
 test = describeTable $ DescribeTable "Dogs"
 
 ------------------------------------------------------------------------------
@@ -35,17 +35,17 @@ data DescribeTable = DescribeTable {
 instance ToJSON DescribeTable where
   toJSON DescribeTable{..} = object [ "TableName" .= describeTableName ]
 
-data DescribeTableResponse = DescribeTableResponse {
-    dtrAttributeDefintions :: [AttributeDefinitions]
-  , dtrCreationDateTime    :: UTCTime
-} deriving (Show)
+-- data DescribeTableResponse = DescribeTableResponse {
+--     dtrAttributeDefintions :: [AttributeDefinitions]
+--   , dtrCreationDateTime    :: UTCTime
+-- } deriving (Show)
 
-instance FromJSON DescribeTableResponse where
-   parseJSON (Object o) = do
-     table <- o .: "Table"
-     DescribeTableResponse <$> table .: "AttributeDefinitions"
-                           <*> (fromSeconds <$> table .: "CreationDateTime")
-   parseJSON _ = mzero
+-- instance FromJSON DescribeTableResponse where
+--    parseJSON (Object o) = do
+--      table <- o .: "Table"
+--      DescribeTableResponse <$> table .: "AttributeDefinitions"
+--                            <*> (fromSeconds <$> table .: "CreationDateTime")
+--    parseJSON _ = mzero
      
        
    

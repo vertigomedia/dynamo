@@ -85,8 +85,8 @@ instance FromJSON AttributeDefinition where
 ------------------------------------------------------------------------------
 -- | Key Type
 data KeyType =
-    HASH
-  | RANGE
+    HASH  -- ^ Hash Key Type
+  | RANGE -- ^ Range Key Type
   deriving (Show, Eq)
 
 instance ToJSON KeyType where
@@ -114,8 +114,8 @@ instance FromJSON KeySchema where
    parseJSON (Object o) =
      KeySchema <$> o .: "AttributeName"
                <*> o .: "KeyType"
+   parseJSON _ = mzero
  
-
 ------------------------------------------------------------------------------
 -- | Provisioned ThroughPut
 -- Represents the provisioned throughput settings for a specified
@@ -123,24 +123,61 @@ instance FromJSON KeySchema where
 data Throughput = Throughput {
      readCapacityUnits :: Int -- ^ Required, Long, The maximum number of strongly consistent reads consumed per second before DynamoDB returns a ThrottlingException
    , writeCapacityUnits :: Int -- ^ Required, Long, The maximum number of writes consumed per second before DynamoDB returns a ThrottlingException
-   , lastIncreaseDateTime :: Maybe UTCTime
-   , lastDecreaseDateTime :: Maybe UTCTime
-   , numberOfDecreasesToday :: Maybe UTCTime
   } deriving (Show, Eq)
 
 instance ToJSON Throughput where
-  toJSON Throughput{..} =
+  toJSON Throughput{..} = 
     object [ "ReadCapacityUnits" .= readCapacityUnits
            , "WriteCapacityUnits" .= writeCapacityUnits
            ]
 
-instance FromJSON Throughput where
+data ThroughputResponse = ThroughputResponse {
+     readCapacityUnitsResp :: Int -- ^ Required, Long, The maximum number of strongly consistent reads consumed per second before DynamoDB returns a ThrottlingException
+   , writeCapacityUnitsResp :: Int -- ^ Required, Long, The maximum number of writes consumed per second before DynamoDB returns a ThrottlingException
+   , lastIncreaseDateTimeResp :: UTCTime
+   , lastDecreaseDateTimeResp :: UTCTime
+   , numberOfDecreasesTodayResp :: Int
+  } deriving (Show, Eq)
+
+
+instance FromJSON ThroughputResponse where
    parseJSON (Object o) =
-     Throughput <$> o .: "ReadCapacityUnits"
-                <*> o .: "WriteCapacityUnits"
-                <*> (fmap fromSeconds <$> o .:? "LastIncreaseDateTime")
-                <*> (fmap fromSeconds <$> o .:? "LastDecreaseDateTime")
-                <*> (fmap fromSeconds <$> o .:? "NumberOfDecreasesToday")
+     ThroughputResponse <$> o .: "ReadCapacityUnits"
+                        <*> o .: "WriteCapacityUnits"
+                        <*> (fromSeconds <$> o .: "LastIncreaseDateTime")
+                        <*> (fromSeconds <$> o .: "LastDecreaseDateTime")
+                        <*> o .: "NumberOfDecreasesToday"
+   parseJSON _ = mzero
+
+------------------------------------------------------------------------------
+-- | Table Response JSON
+data TableResponse = TableResponse {
+    tableResponseAttributeDefintions    :: [AttributeDefinition]
+  , tableResponseCreationTime           :: UTCTime
+  , tableResponseGlobalSecondaryIndexes :: Maybe [GlobalSecondaryIndexResponse]
+--  , tableResponseItemCount              :: Int
+--  , tableResponseKeySchema              :: [KeySchema]
+--  , tableResponseLocalSecondaryIndexes ::  Maybe [LocalSecondaryIndexResponse]
+--  , tableResponseProvisionedThroughput  :: ThroughputResponse
+--  , tableResponseName                   :: Text
+--  , tableResponseSizeBytes              :: Int
+--  , tableResponseStatus                 :: Int
+  } deriving (Show)
+
+instance FromJSON TableResponse where
+  parseJSON (Object o) = do
+    desc <- o .: "TableDescription"
+    TableResponse <$> desc .: "AttributeDefinitions"
+                  <*> (fromSeconds <$> desc .: "CreationDateTime")
+                  <*> desc .:? "GlobalSecondaryIndexes"
+--                  <*> desc .: "ItemCount"
+--                  <*> desc .: "KeySchema"
+--                  <*> desc .:? "LocalSecondaryIndexes"
+--                  <*> desc .: "ProvisionedThroughput"
+--                  <*> desc .: "TableName"
+--                  <*> desc .: "TableSizeBytes"
+--                  <*> desc .: "TableStatus"
+  parseJSON _ = mzero
 
 ------------------------------------------------------------------------------
 -- | Item for insertion or retrieval
@@ -148,7 +185,10 @@ type ItemName = Text
 type ItemValue = Text
 
 data Item = Item ItemName DynamoType ItemValue
-data Capacity = INDEXES | TOTAL -- NONE
+
+data Capacity =
+    INDEXES
+  | TOTAL -- NONE
    deriving (Show)
 
 ------------------------------------------------------------------------------
@@ -185,46 +225,84 @@ data PrimaryKeyType = HashAndRangeType { hashKey :: Key, rangeKey :: Key }
                     | HashType { hashKey :: Key }
                       deriving (Show, Eq)
 
+------------------------------------------------------------------------------
+-- | Local Secondary Index Request Type
+data LocalSecondaryIndex = LocalSecondaryIndex {
+      lsiIndexName :: Text
+    , lsiProjection :: Projection
+    , lsiKeySchema :: [KeySchema]
+  } deriving (Show, Eq)
+
+------------------------------------------------------------------------------
+-- | JSON Instance
+instance ToJSON LocalSecondaryIndex where
+  toJSON LocalSecondaryIndex{..} =
+    object [ "IndexName" .= lsiIndexName
+           , "KeySchema" .= lsiKeySchema
+           , "Projection" .= lsiProjection
+           ]
+
+------------------------------------------------------------------------------
+-- | Local Secondary Index Response Type
+data LocalSecondaryIndexResponse = LocalSecondaryIndexResponse {
+      lsiRespIndexName :: Text
+    , lsiRespIndexSizeBytes :: Int
+    , lsiRespItemCount :: Int
+    , lsiRespProjection :: Projection
+    , lsiRespKeySchema :: [KeySchema]
+  } deriving (Show, Eq)
+
+------------------------------------------------------------------------------
+-- | JSON Instance
+instance FromJSON LocalSecondaryIndexResponse where
+   parseJSON (Object o) =
+     LocalSecondaryIndexResponse <$> o .: "IndexName"
+                                 <*> o .: "IndexSizeBytes"
+                                 <*> o .: "ItemCount"
+                                 <*> o .: "KeySchema"
+                                 <*> o .: "Projection"
 
 ------------------------------------------------------------------------------
 -- | Global Secondary Indexes
+data GlobalSecondaryIndexResponse = GlobalSecondaryIndexResponse {
+    gsiRespIndexName      :: Text
+  , gsiRespIndexSizeBytes :: Int
+  , gsiRespIndexStatus    :: Status
+  , gsiRespItemCount      :: Int
+  , gsiRespKeySchema      :: [KeySchema]
+  , gsiRespProjection     :: Projection
+  , gsiRespProvisionedThroughput :: ThroughputResponse
+  } deriving (Show, Eq)
+
+instance FromJSON GlobalSecondaryIndexResponse where
+   parseJSON (Object o) =
+     GlobalSecondaryIndexResponse
+        <$> o .: "IndexName"
+        <*> o .: "IndexSizeBytes"
+        <*> o .: "IndexStatus"
+        <*> o .: "ItemCount"
+        <*> o .: "KeySchema"
+        <*> o .: "Projection"
+        <*> o .: "ProvisionedThroughput"
+   parseJSON _ = mzero
+
 data GlobalSecondaryIndex = GlobalSecondaryIndex {
     gsiIndexName      :: Text
-  , gsiIndexSizeBytes :: Int
-  , gsiIndexStatus    :: Status
-  , gsiItemCount      :: Int
   , gsiKeySchema      :: [KeySchema]
   , gsiProjection     :: Projection
   , gsiProvisionedThroughput :: Throughput
   } deriving (Show, Eq)
 
-instance ToJSON Projection where
-  toJSON Projection{..} =
-    object [ "NonKeyAttributes" .= nonKeyAttributes
-           , "ProjectionType" .= projectionType
-           ]
-
-
-instance FromJSON GlobalSecondaryIndex where
-   parseJSON (Object o) =
-     GlobalSecondaryIndex <$> o .: "IndexName"
-                          <*> o .: "IndexSizeBytes"
-                          <*> o .: "IndexStatus"
-                          <*> o .: "ItemCount"
-                          <*> o .: "KeySchema"
-                          <*> o .: "Projection"
-                          <*> o .: "ProvisionedThroughput"
-   parseJSON _ = mzero
-
 instance ToJSON GlobalSecondaryIndex where
   toJSON GlobalSecondaryIndex{..} =
-    object [
-             "IndexName" .= gsiIndexName
+    object [ "IndexName" .= gsiIndexName
            , "KeySchema" .= gsiKeySchema
            , "Projection" .= gsiProjection
+           , "ProvisionedThroughput" .= gsiProvisionedThroughput
            ]
 
-
+------------------------------------------------------------------------------
+-- | Status
 data Status =
     CREATING
   | UPDATING
@@ -233,16 +311,29 @@ data Status =
   | UnknownStatus
   deriving (Show, Eq, Read)
 
+instance ToJSON Status where
+  toJSON = String . toText
+
 instance FromJSON Status where
    parseJSON (String x) =
      pure $ case readMaybe (unpack x) :: Maybe Status of
       Just x -> x
       Nothing -> UnknownStatus
+   parseJSON _ = mzero
 
+------------------------------------------------------------------------------
+-- | Projection
 data Projection = Projection {
       nonKeyAttributes :: [Text]
-    , projectionType :: ProjectionType
+    , projectionType   :: ProjectionType
   } deriving (Show, Eq)
+
+instance ToJSON Projection where
+  toJSON Projection{..} = do
+    let proj = ["ProjectionType" .= projectionType]
+    object $ case projectionType of
+                 INCLUDE -> proj ++ [ "NonKeyAttributes" .= nonKeyAttributes ]
+                 _       -> proj
 
 instance FromJSON Projection where
    parseJSON (Object o) =
@@ -250,6 +341,8 @@ instance FromJSON Projection where
                 <*> o .: "ProjectionType"
    parseJSON _ = mzero
 
+------------------------------------------------------------------------------
+-- | Projection Type
 data ProjectionType =
     KEYS_ONLY -- ^ Only the index and primary keys are projected into the index
   | INCLUDE   -- ^ Only the specified table attributes are projected into the index. The list of projected
@@ -263,6 +356,7 @@ instance FromJSON ProjectionType where
      pure $ case readMaybe (unpack x) :: Maybe ProjectionType of
              Nothing -> UnknownProjectionType
              Just x -> x
+   parseJSON _ = mzero
 
 instance ToJSON ProjectionType where
   toJSON = String . toText
@@ -343,3 +437,4 @@ instance FromJSON DynamoErrorType where
      pure $ case readMaybe typ :: Maybe DynamoErrorType of
       Just x  -> x
       Nothing -> UnknownErrorType
+   parseJSON _ = mzero

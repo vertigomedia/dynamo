@@ -25,11 +25,11 @@ import           Web.AWS.DynamoDB.Types
 
 ------------------------------------------------------------------------------
 -- | Make Request
-deleteTable :: DeleteTable -> IO (Either DynamoError DeleteTableResponse)
+deleteTable :: DeleteTable -> IO (Either DynamoError Value)
 deleteTable = callDynamo "DeleteTable" 
 
-test :: IO (Either DynamoError DeleteTableResponse)
-test = deleteTable DeleteTable { deleteTableName = "Dogs" }
+-- test :: IO (Either DynamoError Value)
+-- test = deleteTable DeleteTable { deleteTableName = "Dogs" }
 
 ------------------------------------------------------------------------------
 -- | Request Types
@@ -42,14 +42,3 @@ data DeleteTable = DeleteTable {
 instance ToJSON DeleteTable where
   toJSON DeleteTable{..} = object [ "TableName" .= deleteTableName ]
 
-------------------------------------------------------------------------------
--- | Response Types
-data DeleteTableResponse = DeleteTableResponse {
-    dtrAttributeDefintions :: [AttributeDefinitions]
-  } deriving (Show)
-
-instance FromJSON DeleteTableResponse where
-   parseJSON (Object o) = do
-     table <- o .: "TableDescription"
-     DeleteTableResponse <$> table .: "AttributeDefintions"
-   parseJSON _ = mzero
