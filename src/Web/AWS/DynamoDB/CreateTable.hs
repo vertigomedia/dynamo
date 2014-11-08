@@ -20,18 +20,7 @@ import           Web.AWS.DynamoDB.Types
 -- | Make Request
 createTable :: CreateTable -> IO (Either DynamoError TableResponse)
 createTable = callDynamo "CreateTable" 
-
-test :: Text -> IO (Either DynamoError TableResponse)
-test x = createTable CreateTable {
-    createTableName = x
-  , createTablePrimaryKey = HashAndRangeType (Key "ID" S) (Key "Age" N)
-  , createTableProvisionedThroughput = Throughput 1 1  
-  , createTableGlobalSecondaryIndexes = Just [
-        GlobalSecondaryIndex "testIndex" [ KeySchema "A" HASH ] (Projection [] KEYS_ONLY) (Throughput 1 1)
-      ]
-  , createTableLocalSecondaryIndexes = Just []
- }
-                                 
+                               
 ------------------------------------------------------------------------------
 -- | Types
 data CreateTable = CreateTable {
@@ -39,9 +28,11 @@ data CreateTable = CreateTable {
    , createTablePrimaryKey             :: PrimaryKeyType -- ^ Specify Key Type(s)
    , createTableProvisionedThroughput  :: Throughput -- ^ Required
    , createTableGlobalSecondaryIndexes :: Maybe [GlobalSecondaryIndex] -- ^ Not Required
-   , createTableLocalSecondaryIndexes  :: Maybe [LocalSecondaryIndex] -- ^ Not Required
+   , createTableLocalSecondaryIndexes  :: Maybe [LocalSecondaryIndex]  -- ^ Not Required
    } deriving (Show, Eq)
 
+------------------------------------------------------------------------------
+-- | `CreateTable` helper
 toSchemaDef :: PrimaryKeyType -> ([AttributeDefinition], [KeySchema])
 toSchemaDef (HashAndRangeType (Key hashName hashType) (Key rangeName rangeType)) =
   ([ AttributeDefinition hashName hashType
@@ -53,7 +44,7 @@ toSchemaDef (HashType (Key hashName hashType)) =
       ( [AttributeDefinition hashName hashType], [KeySchema hashName HASH] )
 
 ------------------------------------------------------------------------------
--- | JSON Instance
+-- | `ToJSON` Instance for `CreateTable`
 instance ToJSON CreateTable where
   toJSON CreateTable{..} =
     let (attrs, keyschema) = toSchemaDef createTablePrimaryKey
@@ -66,15 +57,3 @@ instance ToJSON CreateTable where
       , "ProvisionedThroughput" .= createTableProvisionedThroughput
       , "TableName" .= createTableName
       ]
-
-data Thing = Thing {
-      aname :: Text
-    , okedoke :: Maybe Text
-  } deriving (Show)
-
-instance ToJSON Thing where
-  toJSON Thing{..} = object $ [ "Name" .= aname ] ++ ok okedoke
-    where
-      ok x = if isJust x
-             then ["okedoke" .= x]
-             else []

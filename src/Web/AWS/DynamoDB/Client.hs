@@ -32,11 +32,17 @@ import           Pipes.Attoparsec (parse) -- ParsingError(..)
 
 import           Web.AWS.DynamoDB.Types
 
+------------------------------------------------------------------------------
+-- | Operation Type
 type Operation = ByteString
 
+------------------------------------------------------------------------------
+-- | Development Mode flag
 dev :: Bool
 dev = True
 
+------------------------------------------------------------------------------
+-- | Request issuer
 callDynamo ::
   (FromJSON b, ToJSON a) =>
   Operation -> a -> IO (Either DynamoError b)

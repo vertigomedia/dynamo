@@ -18,20 +18,11 @@ import           Web.AWS.DynamoDB.Types
 
 ------------------------------------------------------------------------------
 -- | Make Request
-query :: Query -> IO ()
+query :: FromJSON a => Query -> IO (Either DynamoError a)
 query = callDynamo "Query" 
 
-test :: IO ()
-test = do
-    print (encode thing)
-    putStrLn ""
-    query thing
-  where thing = let q = defaultQuery "Dogs" [
-                      Condition "ID" [AttributeValue S "2"] EQ
---                 ,  Condition "Age" [AttributeValue N "19"] EQ
-                      ] 
-                in q { querySelect = Just Count }
-
+------------------------------------------------------------------------------
+-- | Query helper
 defaultQuery :: Text -> [Condition] -> Query
 defaultQuery t cs = Query t cs Nothing Nothing Nothing
                                Nothing Nothing Nothing
@@ -54,16 +45,34 @@ data Query = Query {
   , queryReturnedConsumedCapacity :: Maybe Capacity -- ^ Not Required
   , queryScanIndexForward :: Maybe Bool             -- ^ Not Required
   , querySelect :: Maybe Select                     -- ^ Not Required
-  }
+  } deriving (Show)
 
-data KeyCondition = KeyCondition [Condition]
-data Condition = Condition ItemName [AttributeValue] ComparisonOperator
-data AttributeValue = AttributeValue DynamoType ItemValue
+------------------------------------------------------------------------------
+-- | `KeyCondition` Type
+data KeyCondition =
+  KeyCondition [Condition]
+  deriving (Show)
 
+------------------------------------------------------------------------------
+-- | `Condition` Type
+data Condition =
+  Condition ItemName [AttributeValue] ComparisonOperator
+  deriving (Show)
+
+------------------------------------------------------------------------------
+-- | `AttributeValue` Type
+data AttributeValue =
+  AttributeValue DynamoType ItemValue
+  deriving (Show)
+
+------------------------------------------------------------------------------
+-- | `ToJSON` instance for `AttributeValue` object
 instance ToJSON AttributeValue where
   toJSON (AttributeValue dtype ivalue) =
     object [ toText dtype .= ivalue ]
 
+------------------------------------------------------------------------------
+-- | `ToJSON` instance for `Query` object
 instance ToJSON Query where
   toJSON Query{..} = object [
       "TableName" .= queryTableName

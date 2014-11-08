@@ -17,33 +17,18 @@ import           Web.AWS.DynamoDB.Types
 
 ------------------------------------------------------------------------------
 -- | Make Request
-getItem :: GetItem -> IO ()
+getItem :: FromJSON a => GetItem -> IO (Either DynamoError a)
 getItem = callDynamo "GetItem" 
 
-test :: IO ()
-test = getItem $ GetItem
-       [ Item "ID" S "1"
-       ] "People"
-
-test2 :: IO ()
-test2 = getItem $ GetItem
-       [ Item "ID" S "8"
-       , Item "Age" N "8"
-       ] "Dogs"
-
-test3 :: IO ()
-test3 = getItem $ GetItem
-       [ Item "ID" S "9"
-       , Item "Age" N "99"
-       ] "Dogs"
-
 ------------------------------------------------------------------------------
--- | Types
+-- | `GetItem` object
 data GetItem = GetItem {
     getItemKey       :: [Item] 
   , getItemTableName :: Text
-  } 
+  } deriving (Show)
 
+------------------------------------------------------------------------------
+-- | `ToJSON` instance for `GetItem`
 instance ToJSON GetItem where
   toJSON GetItem{..} =
     object [

@@ -1,5 +1,11 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
+-- |
+-- Module      : Web.AWS.DynamoDB.ListTables
+-- Copyright   : (c) David Johnson, 2014
+-- Maintainer  : djohnson.m@gmail.com
+-- Stability   : experimental
+-- Portability : POSIX
 module Web.AWS.DynamoDB.ListTables
        ( -- * API
          listTables
@@ -11,7 +17,6 @@ module Web.AWS.DynamoDB.ListTables
 import Control.Monad
 import           Control.Applicative     ( (<$>)
                                          , (<*>) )
-import           Control.Monad           ( mzero )
 import           Data.Aeson              ( FromJSON (..)
                                          , ToJSON   (..)
                                          , Value    (..)
@@ -22,7 +27,6 @@ import           Data.Aeson              ( FromJSON (..)
 import           Data.Text               ( Text )
 
 import           Web.AWS.DynamoDB.Types
-import           Web.AWS.DynamoDB.DeleteTable hiding (test)
 import           Web.AWS.DynamoDB.Client
 
 ------------------------------------------------------------------------------
@@ -30,23 +34,20 @@ import           Web.AWS.DynamoDB.Client
 listTables :: ListTables -> IO (Either DynamoError ListTablesResponse)
 listTables tables = callDynamo "ListTables" tables
 
+------------------------------------------------------------------------------
+-- | Default Request for `ListTable` method
 listTablesDefault :: IO (Either DynamoError ListTablesResponse)
 listTablesDefault = listTables $ ListTables Nothing Nothing
 
-testDel :: IO ()
-testDel = do Right names <- fmap tableNames <$> (listTables $ ListTables Nothing Nothing)
-             xs <- forM names $ \n -> deleteTable (DeleteTable n)
-             print xs
- 
 ------------------------------------------------------------------------------
--- | Request Types
+-- | Request Type
 data ListTables = ListTables {
     exclusiveStartTableName :: Maybe Text
   , listTableRequestLimit   :: Maybe Int
   } deriving (Show)
 
 ------------------------------------------------------------------------------
--- | JSON Instances
+-- | `ToJSON` instances for `ListTables` object
 instance ToJSON ListTables where
   toJSON ListTables{..} = object [
       "ExclusiveStartTableName" .= exclusiveStartTableName
@@ -54,14 +55,14 @@ instance ToJSON ListTables where
     ]
 
 ------------------------------------------------------------------------------
--- | Response Types
+-- | Response Type
 data ListTablesResponse = ListTablesResponse {
       lastEvaluatedTableName :: Maybe Text
     , tableNames             :: [Text]
   } deriving (Show)
 
 ------------------------------------------------------------------------------
--- | JSON Instances
+-- | `FromJSON` instances for `ListTablesResponse` object
 instance FromJSON ListTablesResponse where
   parseJSON (Object o) =
     ListTablesResponse <$> o .:? "LastEvalutedTableName"

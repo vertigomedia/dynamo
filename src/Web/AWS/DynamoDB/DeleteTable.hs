@@ -8,16 +8,10 @@
 -- Portability : POSIX
 module Web.AWS.DynamoDB.DeleteTable where
 
-import           Control.Applicative     ( (<$>)
-                                         , (<*>) )
-import           Control.Monad           ( mzero )
-import           Data.Aeson              ( FromJSON (..)
-                                         , ToJSON   (..)
+import           Data.Aeson              ( ToJSON   (..)
                                          , Value    (..)
                                          , object
-                                         , (.=)
-                                         , (.:?)
-                                         , (.:) )
+                                         , (.=) )
 import           Data.Text               ( Text )
 
 import           Web.AWS.DynamoDB.Client
@@ -28,17 +22,14 @@ import           Web.AWS.DynamoDB.Types
 deleteTable :: DeleteTable -> IO (Either DynamoError Value)
 deleteTable = callDynamo "DeleteTable" 
 
--- test :: IO (Either DynamoError Value)
--- test = deleteTable DeleteTable { deleteTableName = "Dogs" }
-
 ------------------------------------------------------------------------------
--- | Request Types
+-- | `DeleteTable` type
 data DeleteTable = DeleteTable {
     deleteTableName :: Text
   } deriving (Show, Eq)
 
 ------------------------------------------------------------------------------
--- | JSON Instances
+-- | `ToJSON` Instance for `DeleteTable`
 instance ToJSON DeleteTable where
   toJSON DeleteTable{..} = object [ "TableName" .= deleteTableName ]
 

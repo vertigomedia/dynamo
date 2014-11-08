@@ -17,41 +17,11 @@ import           Web.AWS.DynamoDB.Helpers
 
 ------------------------------------------------------------------------------
 -- | Make Request
-updateItem :: UpdateItem -> IO ()
+updateItem :: FromJSON a => UpdateItem -> IO (Either DynamoError a)
 updateItem = callDynamo "UpdateItem" 
 
 ------------------------------------------------------------------------------
--- | Update example
-testu :: IO ()
-testu = do
-  let u = updateItemDefault "Dogs" [
-          Item "ID" S "8"
-        , Item "Age" N "8"
-        ]
-  let u' = u { updateItemUpdateExpression = Just "set Num = :val1"
-             , updateItemExpressionAttributeValues = Just [ Item ":val1" N "9" ]
-             , updateItemReturnValues = Just ALL_NEW
-             }
-  print (encode u')
-  putStrLn ""
-  updateItem u'
-
-------------------------------------------------------------------------------
--- | Atomic Counter Example
-testa :: IO ()
-testa = do
-  let u = updateItemDefault "Dogs" [
-          Item "ID" S "8"
-        , Item "Age" N "8"
-        ]
-  let u' = u { updateItemUpdateExpression = Just "set Num = Num + :val1"
-             , updateItemExpressionAttributeValues = Just [ Item ":val1" N "1" ]
-             , updateItemReturnValues = Just ALL_NEW
-             }
-  print (encode u')
-  putStrLn ""
-  updateItem u'
-
+-- | Default request method for `UpdateItem`
 updateItemDefault :: Text -> [Item] -> UpdateItem 
 updateItemDefault name keys =
   UpdateItem name keys
@@ -73,11 +43,18 @@ data UpdateItem = UpdateItem {
     , updateItemUpdateExpression            :: Maybe Text
   } 
 
-data ReturnValues = NONE | ALL_OLD | UPDATED_OLD | ALL_NEW | UPDATED_NEW deriving (Show)
+------------------------------------------------------------------------------
+-- | `ReturnValues` object
+data ReturnValues =
+  NONE | ALL_OLD | UPDATED_OLD | ALL_NEW | UPDATED_NEW deriving (Show)
 
+------------------------------------------------------------------------------
+-- | `ToJSON` instances for `ReturnValues` object
 instance ToJSON ReturnValues where
   toJSON = String . toText
 
+------------------------------------------------------------------------------
+-- | `ToJSON` instances for `UpdateItem` object
 instance ToJSON UpdateItem where
   toJSON UpdateItem{..} =
     object [ "TableName" .= updateItemTableName

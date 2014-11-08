@@ -8,8 +8,7 @@
 -- Portability : POSIX
 module Web.AWS.DynamoDB.DeleteItem where
 
-import Data.Aeson
-import qualified Data.Text as T
+import           Data.Aeson
 import           Data.Text    (Text)
 
 import           Web.AWS.DynamoDB.Client
@@ -17,28 +16,22 @@ import           Web.AWS.DynamoDB.Types
 import           Web.AWS.DynamoDB.Helpers
 
 ------------------------------------------------------------------------------
--- | Make Request
-deleteItem :: DeleteItem -> IO ()
-deleteItem = callDynamo "DeleteItem" 
-
-test :: IO ()
-test = deleteItem $ DeleteItem
-       [ Item "ID" S "8"
-       , Item "Age" N "8"
-       ] "Dogs"
-
-test2 :: IO ()
-test2 = deleteItem $ DeleteItem
-       [ Item "ID" S "2"
-       ] "People"
+-- | Delete Item
+deleteItem
+  :: FromJSON a
+  => DeleteItem
+  -> IO (Either DynamoError a)
+deleteItem = callDynamo "DeleteItem"
 
 ------------------------------------------------------------------------------
 -- | Types
 data DeleteItem = DeleteItem {
     deleteItemKey       :: [Item] 
   , deleteItemTableName :: Text
-  } 
+  } deriving (Show)
 
+------------------------------------------------------------------------------
+-- | `ToJSON` instance for `DeleteItem`
 instance ToJSON DeleteItem where
   toJSON DeleteItem{..} =
     object [

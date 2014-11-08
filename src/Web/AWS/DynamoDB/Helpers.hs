@@ -8,11 +8,11 @@
 module Web.AWS.DynamoDB.Helpers where
 
 import           Control.Applicative
-import           Data.Text    (Text, pack)
-import           Data.ByteString (ByteString)
+import           Data.Text             (Text, pack)
+import           Data.ByteString       (ByteString)
 import qualified Data.ByteString.Char8 as B8
 import           Data.Time             (UTCTime)
-import           Data.Time.Clock.POSIX (posixSecondsToUTCTime, utcTimeToPOSIXSeconds)
+import           Data.Time.Clock.POSIX (posixSecondsToUTCTime)
 
 ------------------------------------------------------------------------------
 -- | Text Helper

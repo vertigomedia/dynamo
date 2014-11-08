@@ -17,29 +17,18 @@ import           Web.AWS.DynamoDB.Helpers
 
 ------------------------------------------------------------------------------
 -- | Make Request
-putItem :: PutItem -> IO ()
+putItem :: FromJSON a => PutItem -> IO (Either DynamoError a)
 putItem = callDynamo "PutItem" 
 
-putItemDefault :: Text -> [Item] -> IO ()
+------------------------------------------------------------------------------
+-- | Default method for making a `PutItem` Request
+putItemDefault :: FromJSON a => Text -> [Item] -> IO (Either DynamoError a)
 putItemDefault name items =
   callDynamo "PutItem" $
-    PutItem items name Nothing Nothing Nothing Nothing Nothing Nothing 
-
-test :: IO ()
-test = putItemDefault "Dogs"
-       [ Item "ID" S "8"
-       , Item "Age" N "8"
-       , Item "Num" N "8"
-       ]
-
--- test2 :: IO ()
--- test2 = putItemDefault "People" 
---        [ Item "ID" S "2"
---        , Item "Name" S "Alex"
---        ] 
+    PutItem items name Nothing Nothing Nothing Nothing Nothing Nothing
        
 ------------------------------------------------------------------------------
--- | PutItem
+-- | `PutItem` object
 -- <<http://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_PutItem.html>>
 data PutItem = PutItem {
      putItems                           :: [Item]     -- ^ Required 
@@ -52,6 +41,8 @@ data PutItem = PutItem {
    , putItemReturnValues                :: Maybe Text -- ^ Not Required 
   } 
 
+------------------------------------------------------------------------------
+-- | `ToJSON` instance for `PutItem` object
 instance ToJSON PutItem where
   toJSON PutItem{..} =
     object [  "Item" .= let x = map (\(Item k t v) -> k .= object [ toText t .= v ]) putItems

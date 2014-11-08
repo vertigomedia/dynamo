@@ -1,34 +1,21 @@
 {-# LANGUAGE RecordWildCards   #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE RankNTypes        #-}
 -- |
 -- Module      : Web.AWS.DynamoDB.Types
 -- Copyright   : (c) David Johnson, 2014
 -- Maintainer  : djohnson.m@gmail.com
 -- Stability   : experimental
 -- Portability : POSIX
-
 module Web.AWS.DynamoDB.Types where
 
-import           Control.Applicative (pure, (<$>), (<*>))
-import           Data.Text           (Text, pack, unpack, split)
-import           Data.Maybe
-import           Data.Time
-import           Data.Char
+import           Control.Applicative ( pure, (<$>), (<*>) )
+import           Control.Monad       ( mzero )
 import           Data.Aeson
-import           Text.Read  hiding (String)
+import           Data.Text           ( Text, unpack, split )
+import           Data.Time
+import           Text.Read  hiding   ( String )
 
-import           Control.Monad.Reader
-import           Control.Monad.Trans.Either
 import           Web.AWS.DynamoDB.Helpers
-
-------------------------------------------------------------------------------
--- | Dyna-Monad :P
-type DynamoDB = forall a . FromJSON a => EitherT String (ReaderT String IO) a
-
-------------------------------------------------------------------------------
--- | Run Dynamo
---dynamo config requests = runReaderT config $ runEitherT requests
 
 ------------------------------------------------------------------------------
 -- | DynamoDB Types: 
@@ -46,9 +33,13 @@ data DynamoType =
   | M    -- ^ Map
   deriving (Show, Eq)
 
+------------------------------------------------------------------------------
+-- | `ToJSON` instance for `DynamoType`
 instance ToJSON DynamoType where
   toJSON = String . toText
 
+------------------------------------------------------------------------------
+-- | `FromJSON` instance for `DynamoType`
 instance FromJSON DynamoType where
    parseJSON (String "S") = pure S
    parseJSON (String "N") = pure N
@@ -69,6 +60,8 @@ data AttributeDefinition = AttributeDefinition {
     , attributeType :: DynamoType  -- ^ Required, valid values : S | N | B
   } deriving (Show, Eq)
 
+------------------------------------------------------------------------------
+-- | `ToJSON` instance for `AttributeDefinition`
 instance ToJSON AttributeDefinition where
   toJSON AttributeDefinition{..} =
     object [
@@ -76,6 +69,8 @@ instance ToJSON AttributeDefinition where
       , "AttributeType" .= attributeType
       ]
 
+------------------------------------------------------------------------------
+-- | `FromJSON` instance for `AttributeDefinition`
 instance FromJSON AttributeDefinition where
    parseJSON (Object o) = 
      AttributeDefinition <$> o .: "AttributeName"
@@ -89,11 +84,15 @@ data KeyType =
   | RANGE -- ^ Range Key Type
   deriving (Show, Eq)
 
+------------------------------------------------------------------------------
+-- | `ToJSON` instance for `KeyType`
 instance ToJSON KeyType where
   toJSON = String . toText
 
+------------------------------------------------------------------------------
+-- | `FromJSON` instance for `KeyType`
 instance FromJSON KeyType where
-   parseJSON (String "HASH") = pure HASH
+   parseJSON (String "HASH")  = pure HASH
    parseJSON (String "Range") = pure RANGE
    parseJSON _ = mzero
 
@@ -104,12 +103,16 @@ data KeySchema = KeySchema {
     , keySchemaType          :: KeyType -- ^ Required, HASH or RANGE
   } deriving (Show, Eq)
 
+------------------------------------------------------------------------------
+-- | `ToJSON` instance for `KeySchema`
 instance ToJSON KeySchema where
   toJSON KeySchema{..} = object [
       "AttributeName" .= keySchemaAttributeName
     , "KeyType" .= keySchemaType
     ]
 
+------------------------------------------------------------------------------
+-- | `FromJSON` instance for `KeySchema`
 instance FromJSON KeySchema where
    parseJSON (Object o) =
      KeySchema <$> o .: "AttributeName"
@@ -125,12 +128,16 @@ data Throughput = Throughput {
    , writeCapacityUnits :: Int -- ^ Required, Long, The maximum number of writes consumed per second before DynamoDB returns a ThrottlingException
   } deriving (Show, Eq)
 
+------------------------------------------------------------------------------
+-- | `ToJSON` instance for `Throughput`
 instance ToJSON Throughput where
   toJSON Throughput{..} = 
     object [ "ReadCapacityUnits" .= readCapacityUnits
            , "WriteCapacityUnits" .= writeCapacityUnits
            ]
 
+------------------------------------------------------------------------------
+-- | `ThroughputResponse` object
 data ThroughputResponse = ThroughputResponse {
      readCapacityUnitsResp :: Int -- ^ Required, Long, The maximum number of strongly consistent reads consumed per second before DynamoDB returns a ThrottlingException
    , writeCapacityUnitsResp :: Int -- ^ Required, Long, The maximum number of writes consumed per second before DynamoDB returns a ThrottlingException
@@ -139,7 +146,8 @@ data ThroughputResponse = ThroughputResponse {
    , numberOfDecreasesTodayResp :: Int
   } deriving (Show, Eq)
 
-
+------------------------------------------------------------------------------
+-- | `FromJSON` instance for `ThroughputResponse`
 instance FromJSON ThroughputResponse where
    parseJSON (Object o) =
      ThroughputResponse <$> o .: "ReadCapacityUnits"
@@ -150,7 +158,7 @@ instance FromJSON ThroughputResponse where
    parseJSON _ = mzero
 
 ------------------------------------------------------------------------------
--- | Table Response JSON
+-- | TableResponse object
 data TableResponse = TableResponse {
     tableResponseAttributeDefintions    :: [AttributeDefinition]
   , tableResponseCreationTime           :: UTCTime
@@ -164,6 +172,8 @@ data TableResponse = TableResponse {
 --  , tableResponseStatus                 :: Int
   } deriving (Show)
 
+------------------------------------------------------------------------------
+-- | `FromJSON` instance for `TableResponse`
 instance FromJSON TableResponse where
   parseJSON (Object o) = do
     desc <- o .: "TableDescription"
@@ -182,10 +192,18 @@ instance FromJSON TableResponse where
 ------------------------------------------------------------------------------
 -- | Item for insertion or retrieval
 type ItemName = Text
+
+------------------------------------------------------------------------------
+-- | Item Value
 type ItemValue = Text
 
+------------------------------------------------------------------------------
+-- | DynamoDB `Item`
 data Item = Item ItemName DynamoType ItemValue
+            deriving (Show)
 
+------------------------------------------------------------------------------
+-- | Capacity `Item`
 data Capacity =
     INDEXES
   | TOTAL -- NONE
@@ -199,17 +217,24 @@ data Select =
   | AllProjectedAttributes -- ^ Only for querying an Index
   | Count -- ^ Returns the number of matching items rather than the matching items themselves
   | SpecificAttributes -- ^ Returns only the attributes listed in 'AttributesToGet'
+    deriving (Show)
 
+------------------------------------------------------------------------------
+-- | `ToJSON` instance for `Select` 
 instance ToJSON Select where
   toJSON AllAttributes = String "ALL_ATTRIBUTES"
   toJSON AllProjectedAttributes = String "ALL_PROJECTED_ATTRIBUTES"
   toJSON SpecificAttributes = String "SPECIFIC_ATTRIBUTES"
   toJSON Count = String "COUNT"
 
+------------------------------------------------------------------------------
+-- | `ComparisonOperator` object
 data ComparisonOperator =
   GT | LT | EQ | LE | GE | BEGINS_WITH | BETWEEN
   deriving (Show)
 
+------------------------------------------------------------------------------
+-- | `ToJSON` instance for `ComparisonOperator` 
 instance ToJSON ComparisonOperator where
   toJSON = String . toText 
 
@@ -217,13 +242,19 @@ instance ToJSON ComparisonOperator where
 -- | Primary Key
 type KeyName = Text
 
-data Key = Key { keyName :: KeyName
-               , keyType :: DynamoType
-               } deriving (Show, Eq)
+------------------------------------------------------------------------------
+-- | `Key` object
+data Key = Key {
+    keyName :: KeyName
+  , keyType :: DynamoType
+  } deriving (Show, Eq)
 
-data PrimaryKeyType = HashAndRangeType { hashKey :: Key, rangeKey :: Key }
-                    | HashType { hashKey :: Key }
-                      deriving (Show, Eq)
+------------------------------------------------------------------------------
+-- | `PrimaryKeyType` object
+data PrimaryKeyType =
+    HashAndRangeType { hashKey :: Key, rangeKey :: Key }
+  | HashType { hashKey :: Key }
+    deriving (Show, Eq)
 
 ------------------------------------------------------------------------------
 -- | Local Secondary Index Request Type
@@ -234,7 +265,7 @@ data LocalSecondaryIndex = LocalSecondaryIndex {
   } deriving (Show, Eq)
 
 ------------------------------------------------------------------------------
--- | JSON Instance
+-- | `ToJSON` Instance for `LocalSecondaryIndex`
 instance ToJSON LocalSecondaryIndex where
   toJSON LocalSecondaryIndex{..} =
     object [ "IndexName" .= lsiIndexName
@@ -261,9 +292,10 @@ instance FromJSON LocalSecondaryIndexResponse where
                                  <*> o .: "ItemCount"
                                  <*> o .: "KeySchema"
                                  <*> o .: "Projection"
+   parseJSON _ = mzero
 
 ------------------------------------------------------------------------------
--- | Global Secondary Indexes
+-- | Global Secondary Index Response object
 data GlobalSecondaryIndexResponse = GlobalSecondaryIndexResponse {
     gsiRespIndexName      :: Text
   , gsiRespIndexSizeBytes :: Int
@@ -274,6 +306,8 @@ data GlobalSecondaryIndexResponse = GlobalSecondaryIndexResponse {
   , gsiRespProvisionedThroughput :: ThroughputResponse
   } deriving (Show, Eq)
 
+------------------------------------------------------------------------------
+-- | `FromJSON` instance for `GlobalSecondaryIndexeResponse`
 instance FromJSON GlobalSecondaryIndexResponse where
    parseJSON (Object o) =
      GlobalSecondaryIndexResponse
@@ -286,6 +320,8 @@ instance FromJSON GlobalSecondaryIndexResponse where
         <*> o .: "ProvisionedThroughput"
    parseJSON _ = mzero
 
+------------------------------------------------------------------------------
+-- | `GlobalSecondaryIndex` object
 data GlobalSecondaryIndex = GlobalSecondaryIndex {
     gsiIndexName      :: Text
   , gsiKeySchema      :: [KeySchema]
@@ -293,6 +329,8 @@ data GlobalSecondaryIndex = GlobalSecondaryIndex {
   , gsiProvisionedThroughput :: Throughput
   } deriving (Show, Eq)
 
+------------------------------------------------------------------------------
+-- | `ToJSON` instance for `GlobalSecondaryIndex`
 instance ToJSON GlobalSecondaryIndex where
   toJSON GlobalSecondaryIndex{..} =
     object [ "IndexName" .= gsiIndexName
@@ -302,7 +340,7 @@ instance ToJSON GlobalSecondaryIndex where
            ]
 
 ------------------------------------------------------------------------------
--- | Status
+-- | `Status` object
 data Status =
     CREATING
   | UPDATING
@@ -311,9 +349,13 @@ data Status =
   | UnknownStatus
   deriving (Show, Eq, Read)
 
+------------------------------------------------------------------------------
+-- | `ToJSON` instance for `Status`
 instance ToJSON Status where
   toJSON = String . toText
 
+------------------------------------------------------------------------------
+-- | `FromJSON` instance for `Status`
 instance FromJSON Status where
    parseJSON (String x) =
      pure $ case readMaybe (unpack x) :: Maybe Status of
@@ -328,6 +370,8 @@ data Projection = Projection {
     , projectionType   :: ProjectionType
   } deriving (Show, Eq)
 
+------------------------------------------------------------------------------
+-- | `ToJSON` instance for `Projection`
 instance ToJSON Projection where
   toJSON Projection{..} = do
     let proj = ["ProjectionType" .= projectionType]
@@ -335,6 +379,8 @@ instance ToJSON Projection where
                  INCLUDE -> proj ++ [ "NonKeyAttributes" .= nonKeyAttributes ]
                  _       -> proj
 
+------------------------------------------------------------------------------
+-- | `FromJSON` instance for `Projection`
 instance FromJSON Projection where
    parseJSON (Object o) =
      Projection <$> o .: "NonKeyAttributes"
@@ -351,6 +397,8 @@ data ProjectionType =
   | UnknownProjectionType  -- ^ Not known
   deriving (Show, Eq, Read)
 
+------------------------------------------------------------------------------
+-- | `FromJSON` instance for `ProjectionType`
 instance FromJSON ProjectionType where
    parseJSON (String x) =
      pure $ case readMaybe (unpack x) :: Maybe ProjectionType of
@@ -358,6 +406,8 @@ instance FromJSON ProjectionType where
              Just x -> x
    parseJSON _ = mzero
 
+------------------------------------------------------------------------------
+-- | `ToJSON` instance for `ProjectionType`
 instance ToJSON ProjectionType where
   toJSON = String . toText
 
@@ -365,6 +415,8 @@ instance ToJSON ProjectionType where
 -- | Error Handling Types
 type HTTPErrorCode = Int
 
+------------------------------------------------------------------------------
+-- | `DynamoError` object
 data DynamoError =
     ProducerExhausted
   | ParseError
@@ -374,17 +426,23 @@ data DynamoError =
   | ServerError HTTPErrorCode DynamoErrorDetails -- ^ Any error indicated by a 5xx response
   deriving (Show)
 
+------------------------------------------------------------------------------
+-- | `DynamoErrorDetails` object
 data DynamoErrorDetails = DynamoErrorDetails {
      dynamoErrorType    :: DynamoErrorType
    , dynamoErrorMessage :: Text
   } deriving (Show)
 
+------------------------------------------------------------------------------
+-- | `FromJSON` instance for `DynamoErrorDetails` object
 instance FromJSON DynamoErrorDetails where
    parseJSON (Object o) =
      DynamoErrorDetails <$> o .: "__type"
                         <*> o .: "Message"
    parseJSON _ = mzero
 
+------------------------------------------------------------------------------
+-- | `DynamoErrorType` object
 data DynamoErrorType =
     AccessDeniedException       -- ^ General authentication failure. The client did not correctly sign the request. Consult the signing documentation
   | IncompleteSignatureException -- ^ The request signature does not conform to AWS standards.
@@ -429,7 +487,7 @@ data DynamoErrorType =
    deriving (Show, Read)
 
 ------------------------------------------------------------------------------
--- | JSON instance
+-- | `FromJSON` instance for `DynamoErrorType`
 instance FromJSON DynamoErrorType where
    parseJSON (String x) = do
      let [_, t] = split (=='#') x

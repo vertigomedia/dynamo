@@ -16,19 +16,18 @@ import           Web.AWS.DynamoDB.Types
 
 ------------------------------------------------------------------------------
 -- | Make Request
-updateTable :: UpdateTable -> IO ()
+updateTable :: FromJSON a => UpdateTable -> IO (Either DynamoError a)
 updateTable = callDynamo "UpdateTable" 
-
-test :: IO ()
-test = updateTable $ UpdateTable "Dogs" (Throughput 8 8)
 
 ------------------------------------------------------------------------------
 -- | Update Provisioned Throughput on Table
 data UpdateTable = UpdateTable {
      updateTableName :: Text
    , updateTableProvisionedThrouhput :: Throughput
-  }
+  } deriving (Show)
 
+------------------------------------------------------------------------------
+-- | `ToJSON` instance for `UpdateTable`
 instance ToJSON UpdateTable where
   toJSON UpdateTable{..} =
     object [ "TableName" .= updateTableName
