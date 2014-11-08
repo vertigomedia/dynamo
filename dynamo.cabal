@@ -26,8 +26,7 @@ description:
 
 library
   exposed-modules:     Web.AWS.DynamoDB
-  other-modules:       Web.AWS.DynamoDB.Types
-                     , Web.AWS.DynamoDB.Helpers
+  other-modules:       Web.AWS.DynamoDB.Helpers
                      , Web.AWS.DynamoDB.Client
   hs-source-dirs:      src
   build-depends:       aeson
@@ -40,10 +39,18 @@ library
                      , mtl
                      , pipes
                      , pipes-aeson
-                     , pipes-attoparsec >= 0.5.1.1
+                     , pipes-attoparsec
                      , pipes-bytestring
                      , pipes-http
                      , text
                      , time
-                     , transformers >= 0.4.1.0
+                     , transformers
   default-language:    Haskell2010
+
+Test-Suite spec
+    type:             exitcode-stdio-1.0
+    hs-source-dirs:   spec
+    main-is:          Main.hs
+    build-depends:    base, dynamo
+    default-language: Haskell2010
+    ghc-options:      -Wall
