@@ -1,5 +1,7 @@
 {-# LANGUAGE RecordWildCards   #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE ExistentialQuantification #-}
+
 -- |
 -- Module      : Web.AWS.DynamoDB.Types
 -- Copyright   : (c) David Johnson, 2014
@@ -8,7 +10,7 @@
 -- Portability : POSIX
 module Web.AWS.DynamoDB.Types where
 
-import           Control.Applicative ( pure, (<$>), (<*>) )
+import           Control.Applicative ( pure, (<$>), (<*>), (<|>) )
 import           Control.Monad       ( mzero )
 import           Data.Aeson
 import           Data.Text           ( Text, unpack, split )
@@ -141,8 +143,8 @@ instance ToJSON Throughput where
 data ThroughputResponse = ThroughputResponse {
      readCapacityUnitsResp :: Int -- ^ Required, Long, The maximum number of strongly consistent reads consumed per second before DynamoDB returns a ThrottlingException
    , writeCapacityUnitsResp :: Int -- ^ Required, Long, The maximum number of writes consumed per second before DynamoDB returns a ThrottlingException
-   , lastIncreaseDateTimeResp :: UTCTime
-   , lastDecreaseDateTimeResp :: UTCTime
+   , lastIncreaseDateTimeResp :: Maybe UTCTime
+   , lastDecreaseDateTimeResp :: Maybe UTCTime
    , numberOfDecreasesTodayResp :: Int
   } deriving (Show, Eq)
 
@@ -152,54 +154,56 @@ instance FromJSON ThroughputResponse where
    parseJSON (Object o) =
      ThroughputResponse <$> o .: "ReadCapacityUnits"
                         <*> o .: "WriteCapacityUnits"
-                        <*> (fromSeconds <$> o .: "LastIncreaseDateTime")
-                        <*> (fromSeconds <$> o .: "LastDecreaseDateTime")
+                        <*> (fmap fromSeconds <$> o .:? "LastIncreaseDateTime")
+                        <*> (fmap fromSeconds <$> o .:? "LastDecreaseDateTime")
                         <*> o .: "NumberOfDecreasesToday"
    parseJSON _ = mzero
 
 ------------------------------------------------------------------------------
 -- | TableResponse object
 data TableResponse = TableResponse {
-    tableResponseAttributeDefintions    :: [AttributeDefinition]
-  , tableResponseCreationTime           :: UTCTime
+    tableResponseAttributeDefintions    :: Maybe [AttributeDefinition]
+  , tableResponseCreationTime           :: Maybe UTCTime
   , tableResponseGlobalSecondaryIndexes :: Maybe [GlobalSecondaryIndexResponse]
---  , tableResponseItemCount              :: Int
---  , tableResponseKeySchema              :: [KeySchema]
---  , tableResponseLocalSecondaryIndexes ::  Maybe [LocalSecondaryIndexResponse]
---  , tableResponseProvisionedThroughput  :: ThroughputResponse
---  , tableResponseName                   :: Text
---  , tableResponseSizeBytes              :: Int
---  , tableResponseStatus                 :: Int
+  , tableResponseKeySchema              :: Maybe [KeySchema]
+  , tableResponseLocalSecondaryIndexes  :: Maybe [LocalSecondaryIndexResponse]
+
+  , tableResponseItemCount              :: Int
+  , tableResponseProvisionedThroughput  :: ThroughputResponse
+  , tableResponseName                   :: Text
+  , tableResponseSizeBytes              :: Int
+  , tableResponseStatus                 :: Status
   } deriving (Show)
 
 ------------------------------------------------------------------------------
 -- | `FromJSON` instance for `TableResponse`
 instance FromJSON TableResponse where
   parseJSON (Object o) = do
-    desc <- o .: "TableDescription"
-    TableResponse <$> desc .: "AttributeDefinitions"
-                  <*> (fromSeconds <$> desc .: "CreationDateTime")
+    desc <- (o .: "TableDescription" <|> o .: "Table")
+    TableResponse <$> desc .:? "AttributeDefinitions"
+                  <*> (fmap fromSeconds <$> desc .:? "CreationDateTime")
                   <*> desc .:? "GlobalSecondaryIndexes"
---                  <*> desc .: "ItemCount"
---                  <*> desc .: "KeySchema"
---                  <*> desc .:? "LocalSecondaryIndexes"
---                  <*> desc .: "ProvisionedThroughput"
---                  <*> desc .: "TableName"
---                  <*> desc .: "TableSizeBytes"
---                  <*> desc .: "TableStatus"
+                  <*> desc .:? "KeySchema"
+                  <*> desc .:? "LocalSecondaryIndexes"
+                  <*> desc .: "ItemCount"
+                  <*> desc .: "ProvisionedThroughput"
+                  <*> desc .: "TableName"
+                  <*> desc .: "TableSizeBytes"
+                  <*> desc .: "TableStatus"
   parseJSON _ = mzero
 
 ------------------------------------------------------------------------------
 -- | Item for insertion or retrieval
-type ItemName = Text
+type Name = Text
 
 ------------------------------------------------------------------------------
--- | Item Value
-type ItemValue = Text
+-- | Name for a Table
+newtype TableName a = TableName { unTable :: Text }
+       deriving (Show, Eq)
 
 ------------------------------------------------------------------------------
 -- | DynamoDB `Item`
-data Item = Item ItemName DynamoType ItemValue
+data Item = Item Name DynamoType Value
             deriving (Show)
 
 ------------------------------------------------------------------------------
@@ -326,7 +330,7 @@ data GlobalSecondaryIndex = GlobalSecondaryIndex {
     gsiIndexName      :: Text
   , gsiKeySchema      :: [KeySchema]
   , gsiProjection     :: Projection
-  , gsiProvisionedThroughput :: Throughput
+  , gsiProvisionedThroughput :: Throughput 
   } deriving (Show, Eq)
 
 ------------------------------------------------------------------------------
