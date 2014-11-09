@@ -43,21 +43,21 @@ dev = True
 
 ------------------------------------------------------------------------------
 -- | Request issuer
-callDynamo ::
-  (FromJSON b, ToJSON a) =>
-  Operation -> a -> IO (Either DynamoError b)
+callDynamo
+  :: (ToJSON a, FromJSON b)
+  => Operation
+  -> a
+  -> IO (Either DynamoError b)
 callDynamo op bs = do
   let url = bool "https://dynamodb.us-east-1.amazonaws.com:443" "http://localhost:8000" dev
   req <- parseUrl url
   let rawjson = L.toStrict $ encode bs
-  print rawjson
   Right heads <- createRequest rawjson op
   let req' = req {
        method = "POST"
      , requestHeaders = heads
      , requestBody = stream $ PB.fromLazy (encode bs)
     }
-  print req'
   res <- try (withManager tlsManagerSettings $ \m -> 
            withHTTP req' m $ \resp -> do
              evalStateT (parse $ fromJSON <$> json') (responseBody resp))
@@ -65,14 +65,12 @@ callDynamo op bs = do
     Left e -> 
       case fromException e of
         Just (StatusCodeException (Status num _) headers _) -> do
-              let errorJson = fromJust $ decodeStrict $ fromJust $ lookup "X-Response-Body-Start" headers
+              let Just errorJson = fromMaybe (error "oh no") =<< decodeStrict =<< lookup "X-Response-Body-Start" headers
               print errorJson
               case num of
                 code | code >= 400 && code < 500 -> do
-                         print headers
                          return $ Left $ ClientError code errorJson
                      | code >= 500 -> do
-                         print headers
                          return $ Left $ ServerError code errorJson
         Nothing -> return $ Left $ UnknownError (show e)
     Right resp -> 
@@ -80,11 +78,11 @@ callDynamo op bs = do
        Nothing -> return $ Left ParseError
        Just x -> 
          case x of
-           Left pe -> return $ Left ParseError
+           Left _ -> return $ Left ParseError
            Right y -> 
              case y of
-               Success x -> return $ Right x
-               Error g -> return $ Left $ Err g
+               Success z -> return $ Right z
+               Error g   -> return $ Left $ Err g
   where
     createRequest :: ByteString -> Operation -> IO (Either String RequestHeaders)
     createRequest payload operation = do
@@ -94,13 +92,13 @@ callDynamo op bs = do
       signPostRequestIO creds UsEast1 ServiceNamespaceDynamodb now "POST"
            ([] :: UriPath)
            ([] :: UriQuery)
-             ( [("Accept-Encoding", "gzip")
-             , ("connection", "Keep-Alive")
-             , ("content-type", "application/x-amz-json-1.0")
-             , ("Host", "dynamodb.us-east-1.amazonaws.com:443")
-             , ("x-amz-target", "DynamoDB_20120810." <> operation)
+           ( [ ("Accept-Encoding", "gzip")
+           ,   ("connection", "Keep-Alive")
+           ,   ("content-type", "application/x-amz-json-1.0")
+           ,   ("Host", "dynamodb.us-east-1.amazonaws.com:443")
+           ,   ("x-amz-target", "DynamoDB_20120810." <> operation)
              ] :: RequestHeaders)
-             payload
+           payload
 
 
 

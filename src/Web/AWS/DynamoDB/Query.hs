@@ -56,13 +56,13 @@ data KeyCondition =
 ------------------------------------------------------------------------------
 -- | `Condition` Type
 data Condition =
-  Condition ItemName [AttributeValue] ComparisonOperator
+  Condition Name [AttributeValue] ComparisonOperator
   deriving (Show)
 
 ------------------------------------------------------------------------------
 -- | `AttributeValue` Type
 data AttributeValue =
-  AttributeValue DynamoType ItemValue
+  AttributeValue DynamoType Text
   deriving (Show)
 
 ------------------------------------------------------------------------------

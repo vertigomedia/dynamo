@@ -8,8 +8,11 @@
 -- Portability : POSIX
 module Web.AWS.DynamoDB.GetItem where
 
+import           Control.Applicative
+import           Control.Monad
 import           Data.Aeson
 import           Data.Text    (Text)
+import           Data.Foldable (toList)
 
 import           Web.AWS.DynamoDB.Client
 import           Web.AWS.DynamoDB.Helpers
@@ -36,6 +39,28 @@ instance ToJSON GetItem where
                  in object x
       , "TableName" .= getItemTableName                  
            ]
+
+------------------------------------------------------------------------------
+-- | `GetItemResponse`
+data GetItemResponse = GetItemResponse {
+      getItemResponseItems :: [Item]
+    }
+
+------------------------------------------------------------------------------
+-- | `FromJSON` GetItemResponse instnce
+instance FromJSON GetItemResponse where
+   parseJSON (Object o) = do
+      Object items <- o .: "Items"
+      let xs = toList items
+            
+      undefined
+      -- GetItemResponse <$>
+      --   forM () $ \(k, Object v) ->
+      --     forM_ (toList v) $ \(typ, value) ->
+      --        Item k (fromJSON typ) value                              
+        
+        
+   parseJSON _ = mzero
 
        
                      

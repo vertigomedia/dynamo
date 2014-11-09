@@ -6,7 +6,13 @@
 -- Maintainer  : djohnson.m@gmail.com
 -- Stability   : experimental
 -- Portability : POSIX
-module Web.AWS.DynamoDB.PutItem where
+module Web.AWS.DynamoDB.PutItem
+       ( -- * API
+          putItem
+        , putItemDefault
+          -- * Types
+        , PutItem (..)
+       ) where
 
 import           Data.Aeson
 import           Data.Text    (Text)
