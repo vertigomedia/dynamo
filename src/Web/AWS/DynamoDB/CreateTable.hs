@@ -6,21 +6,39 @@
 -- Maintainer  : djohnson.m@gmail.com
 -- Stability   : experimental
 -- Portability : POSIX
-module Web.AWS.DynamoDB.CreateTable where
+module Web.AWS.DynamoDB.CreateTable
+       ( -- * API
+         createTable
+       , createTableDefault
+         -- * Types
+       , CreateTable (..)
+       )
+       where
 
-import           Data.Aeson
-import           Data.Text    (Text)
-import           Data.Maybe
+import           Data.Aeson   
+import           Data.Text    ( Text )
 
-
-import           Web.AWS.DynamoDB.Client
-import           Web.AWS.DynamoDB.Types
+import           Web.AWS.DynamoDB.Client ( callDynamo )
+import           Web.AWS.DynamoDB.Types  
+-- import           Web.AWS.DynamoDB.Abstract
 
 ------------------------------------------------------------------------------
 -- | Make Request
 createTable :: CreateTable -> IO (Either DynamoError TableResponse)
 createTable = callDynamo "CreateTable" 
-                               
+
+------------------------------------------------------------------------------
+-- | Make Request
+createTableDefault
+  :: Text
+  -> PrimaryKeyType
+  -> Throughput
+  -> IO (Either DynamoError TableResponse)
+createTableDefault
+  tableName
+  keytype
+  throughput = callDynamo "CreateTable" $ CreateTable tableName keytype throughput Nothing Nothing
+
 ------------------------------------------------------------------------------
 -- | Types
 data CreateTable = CreateTable {

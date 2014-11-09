@@ -1,39 +1,84 @@
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE FunctionalDependencies #-}
+{-# LANGUAGE RecordWildCards           #-}
+{-# LANGUAGE OverloadedStrings         #-}
+{-# LANGUAGE FunctionalDependencies    #-}
 {-# LANGUAGE ExistentialQuantification #-}
-
+{-# LANGUAGE DeriveGeneric             #-}
 module Web.AWS.DynamoDB.Abstract where
 
 import           Data.Aeson
-import           Data.Text    (Text)
+import           Data.Text          (Text)
+import           GHC.Generics       (Generic)
+import           Control.Concurrent (threadDelay)
+
+import           Web.AWS.DynamoDB.CreateTable
+import           Web.AWS.DynamoDB.UpdateTable
+import           Web.AWS.DynamoDB.DeleteTable
+import           Web.AWS.DynamoDB.DescribeTable
+import           Web.AWS.DynamoDB.PutItem
 import           Web.AWS.DynamoDB.Types
 
+secs :: Int -> Int
+secs = (*1000000)
+
 ------------------------------------------------------------------------------
--- | Brainstorm a good way to enforce type safety when dealing with dynamo..
-class (ToJSON a, FromJSON b) => ToDynamo a b | a -> b where
-  createTable :: a -> IO (Either DynamoError b)
+-- | Phantom type all the things
+class (ToJSON a, FromJSON a) => ToDynamo a where
+  tableName      :: a -> Text
+  primaryKeyType :: a -> PrimaryKeyType
+  throughput     :: a -> Throughput
 
-class ToDynamoTable a where
-  primaryKey :: a -> PrimaryKeyType
-  toDynamoItem :: a -> [Item]
-  fromDynamoDoucment :: [Item] -> a
+  itemSchema     :: a -> [Item]
 
-class (Show a, ToJSON a) => ToDynamoType a where
-  toDynamoType :: a -> Item
+  describeTable' :: a -> IO (Either DynamoError TableResponse)
+  describeTable' = describeTable . DescribeTable . tableName
 
-instance ToDynamoType Text where
-  toDynamoType _ = S
+  createTable' :: a -> IO (Either DynamoError TableResponse)
+  createTable' x = createTableDefault (tableName x)
+                                      (primaryKeyType x)
+                                      (throughput x)
 
-instance ToDynamoType Int where
-  toDynamoType _ = N
+  deleteTable' :: a -> IO (Either DynamoError TableResponse)
+  deleteTable' = deleteTable . DeleteTable . tableName
 
-instance ToDynamoType Integer where
-  toDynamoType _ = N
+  updateTable' :: a -> Throughput -> IO (Either DynamoError TableResponse)
+  updateTable' x tp = updateTable $ UpdateTable (tableName x) tp
+
+  putItem' :: a -> IO (Either DynamoError TableResponse)
+  putItem' x = putItemDefault (tableName x) (itemSchema x) 
+
+ok :: IO ()
+ok = do
+  print =<< createTable' (undefined :: Person)
+  dt
+  print =<< updateTable' (undefined :: Person) (Throughput 2 2)
+  dt
+  print =<< deleteTable' (undefined :: Person)
+  where
+    dt = do threadDelay (secs 4)
+            print =<< describeTable' (undefined :: Person)
 
 
--- data DynamoTable b a = (ToDynamoTable b, Show a) => DynamoTable {
---     dynamoData :: a
---   }
+
+data Person = Person {
+    pid  :: Text
+  , age  :: Int
+  , name :: Text
+  } deriving (Show, Generic)
+
+instance ToJSON Person
+instance FromJSON Person
+
+instance ToDynamo Person where
+  tableName      = const "People"
+  primaryKeyType = const $ HashType $ Key "id" S 
+  throughput     = const $ Throughput 1 1
+  itemSchema Person{..} = [
+      Item "id"  N (toJSON pid)
+    , Item "age"  N (toJSON age)
+    , Item "name" S (toJSON name)
+    ]
+
+
 
 
   

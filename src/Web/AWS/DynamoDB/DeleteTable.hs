@@ -9,7 +9,6 @@
 module Web.AWS.DynamoDB.DeleteTable where
 
 import           Data.Aeson              ( ToJSON   (..)
-                                         , Value    (..)
                                          , object
                                          , (.=) )
 import           Data.Text               ( Text )
@@ -19,7 +18,7 @@ import           Web.AWS.DynamoDB.Types
 
 ------------------------------------------------------------------------------
 -- | Make Request
-deleteTable :: DeleteTable -> IO (Either DynamoError Value)
+deleteTable :: DeleteTable -> IO (Either DynamoError TableResponse)
 deleteTable = callDynamo "DeleteTable" 
 
 ------------------------------------------------------------------------------
