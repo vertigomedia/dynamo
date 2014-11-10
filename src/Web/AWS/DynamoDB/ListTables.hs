@@ -9,6 +9,7 @@
 module Web.AWS.DynamoDB.ListTables
        ( -- * API
          listTables
+       , listTablesDefault
          -- * Types
        , ListTables         (..)
        , ListTablesResponse (..)

@@ -10,8 +10,8 @@
 module Web.AWS.DynamoDB.Client where
 
 import           Control.Exception
+import           Data.Text    (pack)
 import           Control.Applicative
-import           Data.Maybe
 import           Data.Aeson
 import           Data.ByteString (ByteString)
 import qualified Data.ByteString.Lazy as L
@@ -65,18 +65,23 @@ callDynamo op bs = do
     Left e -> 
       case fromException e of
         Just (StatusCodeException (Status num _) headers _) -> do
-              let Just errorJson = fromMaybe (error "oh no") =<< decodeStrict =<< lookup "X-Response-Body-Start" headers
-              print errorJson
+--              print $ lookup "X-Response-Body-Start" headers 
+              let res = lookup "X-Response-Body-Start" headers 
+                  errorJson = case res of 
+                    Nothing -> DynamoErrorDetails ClientParsingError "no json body"
+                    Just x -> case eitherDecodeStrict x of
+                                Left m -> DynamoErrorDetails ClientParsingError (pack m)
+                                Right k -> k
               case num of
                 code | code >= 400 && code < 500 -> do
                          return $ Left $ ClientError code errorJson
                      | code >= 500 -> do
                          return $ Left $ ServerError code errorJson
         Nothing -> return $ Left $ UnknownError (show e)
-    Right resp -> 
+    Right resp -> do
      case resp of
        Nothing -> return $ Left ParseError
-       Just x -> 
+       Just x ->  
          case x of
            Left _ -> return $ Left ParseError
            Right y -> 

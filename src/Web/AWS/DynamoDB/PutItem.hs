@@ -45,7 +45,7 @@ data PutItem = PutItem {
    , putItemReturnConsumedCapacity      :: Maybe Text -- ^ Not Required 
    , putItemReturnItemCollectionMetrics :: Maybe Text -- ^ Not Required 
    , putItemReturnValues                :: Maybe Text -- ^ Not Required 
-  } 
+  } deriving (Show)
 
 ------------------------------------------------------------------------------
 -- | `ToJSON` instance for `PutItem` object
@@ -54,13 +54,5 @@ instance ToJSON PutItem where
     object [  "Item" .= let x = map (\(Item k t v) -> k .= object [ toText t .= v ]) putItems
                         in object x
            ,  "TableName" .= putItemTableName
+           ,  "ReturnValues" .= String "ALL_OLD"
            ]
-
-
--- data PutItemResponse = PutItemResponse deriving (Show, Eq)
-
--- instance FromJSON PutItemResponse where
---    parseJSON (Object o) = pure PutItemResponse
---    parseJSON _ = mzero
-           
-

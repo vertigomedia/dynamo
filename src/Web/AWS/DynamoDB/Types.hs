@@ -1,7 +1,7 @@
 {-# LANGUAGE RecordWildCards   #-}
+{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ExistentialQuantification #-}
-
 -- |
 -- Module      : Web.AWS.DynamoDB.Types
 -- Copyright   : (c) David Johnson, 2014
@@ -10,13 +10,16 @@
 -- Portability : POSIX
 module Web.AWS.DynamoDB.Types where
 
+import Prelude hiding (unlines)
+import           Data.HashMap.Strict ( toList )
+import           Control.Monad       ( forM   ) 
 import           Control.Applicative ( pure, (<$>), (<*>), (<|>) )
 import           Control.Monad       ( mzero )
 import           Data.Aeson
 import           Data.Text           ( Text, unpack, split )
 import           Data.Time
 import           Text.Read  hiding   ( String )
-
+import           Text.Printf
 import           Web.AWS.DynamoDB.Helpers
 
 ------------------------------------------------------------------------------
@@ -146,7 +149,11 @@ data ThroughputResponse = ThroughputResponse {
    , lastIncreaseDateTimeResp :: Maybe UTCTime
    , lastDecreaseDateTimeResp :: Maybe UTCTime
    , numberOfDecreasesTodayResp :: Int
-  } deriving (Show, Eq)
+  } deriving Eq
+
+instance Show ThroughputResponse where
+    show ThroughputResponse{..} =
+      printf "Read-Write Capacity: %d - %d" readCapacityUnitsResp writeCapacityUnitsResp
 
 ------------------------------------------------------------------------------
 -- | `FromJSON` instance for `ThroughputResponse`
@@ -167,13 +174,36 @@ data TableResponse = TableResponse {
   , tableResponseGlobalSecondaryIndexes :: Maybe [GlobalSecondaryIndexResponse]
   , tableResponseKeySchema              :: Maybe [KeySchema]
   , tableResponseLocalSecondaryIndexes  :: Maybe [LocalSecondaryIndexResponse]
-
   , tableResponseItemCount              :: Int
   , tableResponseProvisionedThroughput  :: ThroughputResponse
   , tableResponseName                   :: Text
   , tableResponseSizeBytes              :: Int
   , tableResponseStatus                 :: Status
-  } deriving (Show)
+  } 
+
+instance Show TableResponse where
+  show TableResponse {..} = 
+         printf "\n\
+                \TableName  : %s\n\
+                \TableStatus: %s\n\
+                \ItemCount  : %d\n\
+                \Throughput : %s\n\
+                \SizeBytes  : %d\n\
+                \Attributes : %s\n\
+                \Creation   : %s\n\
+                \KeySchema  : %s\n\
+                \LSI        : %s\n\
+                \GSI        : %s\n"
+         (unpack tableResponseName)
+         (show tableResponseStatus)
+         tableResponseItemCount
+         (show tableResponseProvisionedThroughput)
+         (tableResponseSizeBytes)
+         (show tableResponseAttributeDefintions)
+         (show tableResponseCreationTime)
+         (show tableResponseKeySchema)
+         (show tableResponseLocalSecondaryIndexes)
+         (show tableResponseGlobalSecondaryIndexes)
 
 ------------------------------------------------------------------------------
 -- | `FromJSON` instance for `TableResponse`
@@ -207,11 +237,41 @@ data Item = Item Name DynamoType Value
             deriving (Show)
 
 ------------------------------------------------------------------------------
+-- | `FromJSON` [Item] instance
+instance FromJSON [Item] where
+   parseJSON (Object o) = do
+      case toList o of
+         [] -> return []
+         _ -> do
+           items <- (o .: "Item" <|> o .: "Attributes")
+           let xs = toList items
+           forM xs $ \(k, Object v) -> do
+               let [(t,val)] = toList v
+                   dt = case fromJSON (String t) of
+                          Error _ -> error "couldn't parse into DynamoType"
+                          Success x -> x
+               return $ Item k dt val
+   parseJSON _ = mzero
+
+
+------------------------------------------------------------------------------
 -- | Capacity `Item`
 data Capacity =
     INDEXES
-  | TOTAL -- NONE
+  | TOTAL
+--  | NONE
    deriving (Show)
+
+------------------------------------------------------------------------------
+-- | ReturnValue
+data ReturnValue = NONE | ALL_OLD | UPDATED_OLD | ALL_NEW | UPDATED_NEW
+  deriving (Show, Eq)
+
+------------------------------------------------------------------------------
+-- | ToJSON Instance for `ReturnValue`
+instance ToJSON ReturnValue where
+  toJSON = String . toText
+
 
 ------------------------------------------------------------------------------
 -- | Select on Query's
@@ -252,6 +312,10 @@ data Key = Key {
     keyName :: KeyName
   , keyType :: DynamoType
   } deriving (Show, Eq)
+
+------------------------------------------------------------------------------
+-- | Type def for Keys as Items
+type KeyItem = Item
 
 ------------------------------------------------------------------------------
 -- | `PrimaryKeyType` object
@@ -442,7 +506,8 @@ data DynamoErrorDetails = DynamoErrorDetails {
 instance FromJSON DynamoErrorDetails where
    parseJSON (Object o) =
      DynamoErrorDetails <$> o .: "__type"
-                        <*> o .: "Message"
+                             -- Amazon's json is very inconsistent to say the least
+                        <*> (o .: "message" <|> o .: "Message")
    parseJSON _ = mzero
 
 ------------------------------------------------------------------------------
@@ -487,6 +552,7 @@ data DynamoErrorType =
                         -- The error message contains details about the specific part of the request that caused the error.
   | InternalServerError -- ^ The server encountered an internal error trying to fulfill the request.
   | ServiceUnavailableException -- ^ The server encountered an internal error trying to fulfill the request.
+  | ClientParsingError -- ^ Client couldn't parse the error json
   | UnknownErrorType            -- ^ Customer unknown error type (not AWS specific)
    deriving (Show, Read)
 

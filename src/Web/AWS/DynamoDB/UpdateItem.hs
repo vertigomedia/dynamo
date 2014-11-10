@@ -6,8 +6,13 @@
 -- Maintainer  : djohnson.m@gmail.com
 -- Stability   : experimental
 -- Portability : POSIX
-module Web.AWS.DynamoDB.UpdateItem where
-
+module Web.AWS.DynamoDB.UpdateItem
+       ( -- * Update Item
+         updateItem
+       , updateItemDefault
+       , UpdateItem (..)
+       ) where
+       
 import           Data.Aeson 
 import           Data.Text    (Text)
 
@@ -22,36 +27,25 @@ updateItem = callDynamo "UpdateItem"
 
 ------------------------------------------------------------------------------
 -- | Default request method for `UpdateItem`
-updateItemDefault :: Text -> [Item] -> UpdateItem 
-updateItemDefault name keys =
-  UpdateItem name keys
+updateItemDefault :: FromJSON a => Text -> [Item] -> Text -> [Item] -> IO (Either DynamoError a)
+updateItemDefault name keys exp avals = updateItem $ 
+  UpdateItem name keys exp
+  avals Nothing Nothing
   Nothing Nothing Nothing
-  Nothing Nothing Nothing
-  Nothing 
-
+  
 ------------------------------------------------------------------------------
 -- | Types
 data UpdateItem = UpdateItem {
       updateItemTableName                   :: Text   -- ^ Required
     , updateItemKeys                        :: [Item] -- ^ Required
+    , updateItemUpdateExpression            :: Text
+    , updateItemExpressionAttributeValues   :: [Item]
     , updateItemConditionExpression         :: Maybe Text
     , updateItemExpressionAttributeNames    :: Maybe Text
-    , updateItemExpressionAttributeValues   :: Maybe [Item]
     , updateItemReturnConsumedCapacity      :: Maybe Text
     , updateItemReturnItemCollectionMetrics :: Maybe Text
-    , updateItemReturnValues                :: Maybe ReturnValues
-    , updateItemUpdateExpression            :: Maybe Text
+    , updateItemReturnValues                :: Maybe ReturnValue
   } 
-
-------------------------------------------------------------------------------
--- | `ReturnValues` object
-data ReturnValues =
-  NONE | ALL_OLD | UPDATED_OLD | ALL_NEW | UPDATED_NEW deriving (Show)
-
-------------------------------------------------------------------------------
--- | `ToJSON` instances for `ReturnValues` object
-instance ToJSON ReturnValues where
-  toJSON = String . toText
 
 ------------------------------------------------------------------------------
 -- | `ToJSON` instances for `UpdateItem` object
@@ -63,9 +57,7 @@ instance ToJSON UpdateItem where
            , "UpdateExpression" .= updateItemUpdateExpression
            , "ConditionExpression" .= updateItemConditionExpression
            , "ExpressionAttributeValues" .=
-               case updateItemExpressionAttributeValues of
-                 Nothing -> Nothing
-                 Just xs -> let x = map (\(Item k t v) -> k .= object [ toText t .= v ]) xs
-                            in Just $ object x
+                let x = map (\(Item k t v) -> k .= object [ toText t .= v ]) updateItemExpressionAttributeValues
+                in object x
            , "ReturnValues" .= updateItemReturnValues
            ]
