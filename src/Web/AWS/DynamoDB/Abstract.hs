@@ -71,35 +71,32 @@ ok = do
   dt
   print =<< updateTable' (undefined :: Person) (Throughput 2 2)
   dt
-  print =<< deleteTable' (undefined :: Person)
   print =<< listTablesDefault
   where
     dt = do
-      threadDelay (secs 3)
+      threadDelay (secs 10)
       print =<< describeTable' (undefined :: Person)
 
 data Person = Person {
-    pid            :: Int
-  , age            :: Int
+    pid            :: Text
   , name           :: Text
-  , favoriteNumber :: Int
   } deriving (Show, Generic)
 
-putPerson :: Int -> IO ()
+putPerson :: Text -> IO ()
 putPerson x = forM_ people $ print <=< putItem'
-  where people = [ Person x 22 "Dave" 99 ]
+  where people = [ Person x "Dave" ]
 
-delPerson :: Int -> IO ()
-delPerson x = print =<< (deleteItem' (undefined :: Person) [Item "id" N $ toJSON x] ALL_OLD)
+delPerson :: Text -> IO ()
+delPerson x = print =<< (deleteItem' (undefined :: Person) [Item "id" S $ String x] ALL_OLD)
 
-getPerson :: Int -> IO ()
-getPerson x = print =<< (getItem' (undefined :: Person) [Item "id" N $ toJSON x])
+getPerson :: Text -> IO ()
+getPerson x = print =<< (getItem' (undefined :: Person) [Item "id" S $ String x])
 
-updatePerson :: Int -> IO ()
+updatePerson :: Text -> IO ()
 updatePerson x = print =<< (updateItem' (undefined :: Person)
-                                            [Item "id" N $ toJSON x]
-                                            "SET AGE = :x"
-                                            [Item ":x" N $ toJSON x])
+                                            [Item "id" S $ toJSON x]
+                                            "SET name = :x"
+                                            [Item ":x" S $ toJSON x])
 instance ToJSON Person
 instance FromJSON Person
 
@@ -110,16 +107,12 @@ instance ToDynamo Person where
   fromItems xs
     | null xs = Nothing
     | otherwise = 
-      let [ Item "id" N (String id')]     = filter (\(Item n _ _) -> n == "id") xs
-          [ Item "age" N (String age')]   = filter (\(Item n _ _) -> n == "age") xs
+      let [ Item "id" S (String id')]     = filter (\(Item n _ _) -> n == "id") xs
           [ Item "name" S (String name')] = filter (\(Item n _ _) -> n == "name") xs
-          [ Item "favoriteNumber" N (String num')] = filter (\(Item n _ _) -> n == "favoriteNumber") xs
           f = read . unpack
-      in pure $ Person (f id') (f age') name' (f num')
+      in pure $ Person (f id') name'
 
   toItems Person{..} = [
-      Item "id"   N (toJSON pid)
-    , Item "age"  N (toJSON age)
-    , Item "name" S (toJSON name)
-    , Item "favoriteNumber" N (toJSON favoriteNumber)
+      Item "id"   S (String pid)
+    , Item "name" S (String name)
     ]
