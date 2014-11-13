@@ -39,7 +39,7 @@ type Operation = ByteString
 ------------------------------------------------------------------------------
 -- | Development Mode flag
 dev :: Bool
-dev = False
+dev = True
 
 ------------------------------------------------------------------------------
 -- | Request issuer
@@ -77,7 +77,7 @@ callDynamo op bs = do
                          return $ Left $ ClientError code errorJson
                      | code >= 500 -> do
                          return $ Left $ ServerError code errorJson
-        Nothing -> return $ Left $ UnknownError (show e)
+        _ -> return $ Left $ UnknownError (show e)
     Right resp -> do
      case resp of
        Nothing -> return $ Left ParseError
