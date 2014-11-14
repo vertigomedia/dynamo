@@ -22,8 +22,8 @@ updateTable = callDynamo "UpdateTable"
 ------------------------------------------------------------------------------
 -- | Update Provisioned Throughput on Table
 data UpdateTable = UpdateTable {
-     updateTableName :: Text
-   , updateTableProvisionedThrouhput :: Throughput
+     updateTableName                 :: Text
+   , updateTableProvisionedThrouhput :: Throughput 
   } deriving (Show)
 
 ------------------------------------------------------------------------------

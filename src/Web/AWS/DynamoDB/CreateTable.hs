@@ -33,11 +33,15 @@ createTableDefault
   :: Text
   -> PrimaryKeyType
   -> Throughput
+  -> Maybe [LocalSecondaryIndex]
+  -> Maybe [GlobalSecondaryIndex]
   -> IO (Either DynamoError TableResponse)
 createTableDefault
   tableName
   keytype
-  throughput = callDynamo "CreateTable" $ CreateTable tableName keytype throughput Nothing Nothing
+  throughput
+  lsi
+  gsi = callDynamo "CreateTable" $ CreateTable tableName keytype throughput gsi lsi
 
 ------------------------------------------------------------------------------
 -- | Types
