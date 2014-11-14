@@ -10,7 +10,6 @@ module Web.AWS.DynamoDB.DeleteTable where
 
 import           Data.Aeson              ( ToJSON   (..)
                                          , object
-                                         , Value(..)
                                          , (.=) )
 import           Data.Text               ( Text )
 
