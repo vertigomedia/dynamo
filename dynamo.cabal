@@ -11,10 +11,13 @@ build-type:          Simple
 cabal-version:       >=1.10
 description:
     .
-    <<https://stripe.com/img/navigation/logo@2x.png>>
+    <<http://i.imgur.com/PsFo6bM.jpg>>
     .
     [DynamoDB - <https://aws.amazon.com/dynamodb>]
     DynamoDB is a Key-Value store offering by Amazon Web Services that manages and maintains your data while providing limitless scalability
+    .
+    [Original Paper]
+    <http://aws.amazon.com/documentation/dynamodb.pdf>
     .
     [100% Haddock Coverage]
     All code written for this library is documented to completion with the haddock documentation tool
@@ -41,7 +44,20 @@ description:
 library
   exposed-modules:     Web.AWS.DynamoDB
   other-modules:       Web.AWS.DynamoDB.Helpers
+                     , Web.AWS.DynamoDB.Abstract
                      , Web.AWS.DynamoDB.Client
+                     , Web.AWS.DynamoDB.Query
+                     , Web.AWS.DynamoDB.Types
+                     , Web.AWS.DynamoDB.DeleteItem
+                     , Web.AWS.DynamoDB.GetItem
+                     , Web.AWS.DynamoDB.PutItem
+                     , Web.AWS.DynamoDB.UpdateItem
+                     , Web.AWS.DynamoDB.CreateTable
+                     , Web.AWS.DynamoDB.ListTables
+                     , Web.AWS.DynamoDB.DescribeTable
+                     , Web.AWS.DynamoDB.UpdateTable
+                     , Web.AWS.DynamoDB.DeleteTable
+
   hs-source-dirs:      src
   build-depends:       aeson
                      , aws-general
