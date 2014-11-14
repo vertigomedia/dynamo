@@ -1,18 +1,23 @@
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE OverloadedStrings #-}
--- |
+------------------------------------------------------------------------------
+-- | 
 -- Module      : Web.AWS.DynamoDB.Client
 -- Copyright   : (c) David Johnson, 2014
 -- Maintainer  : djohnson.m@gmail.com
 -- Stability   : experimental
 -- Portability : POSIX
+-- | 
+------------------------------------------------------------------------------
 module Web.AWS.DynamoDB.Client where
 
 import           Control.Exception
-import           Data.Text    (pack)
+import           Control.Monad      (when)
+import           Data.Text          (pack)
 import           Control.Applicative
 import           Data.Aeson
+
 import           Data.ByteString (ByteString)
 import qualified Data.ByteString.Lazy as L
 import           Control.Monad.Trans.State.Strict
@@ -37,9 +42,10 @@ import           Web.AWS.DynamoDB.Types
 type Operation = ByteString
 
 ------------------------------------------------------------------------------
--- | Development Mode flag
-dev :: Bool
-dev = True
+-- | Development Mode flag, Debug Flag
+dev, debug :: Bool
+dev   = True
+debug = False
 
 ------------------------------------------------------------------------------
 -- | Request issuer
@@ -52,6 +58,7 @@ callDynamo op bs = do
   let url = bool "https://dynamodb.us-east-1.amazonaws.com:443" "http://localhost:8000" dev
   req <- parseUrl url
   let rawjson = L.toStrict $ encode bs
+  when debug $ print rawjson
   Right heads <- createRequest rawjson op
   let req' = req {
        method = "POST"
@@ -65,7 +72,6 @@ callDynamo op bs = do
     Left e -> 
       case fromException e of
         Just (StatusCodeException (Status num _) headers _) -> do
---              print $ lookup "X-Response-Body-Start" headers 
               let res = lookup "X-Response-Body-Start" headers 
                   errorJson = case res of 
                     Nothing -> DynamoErrorDetails ClientParsingError "no json body"
