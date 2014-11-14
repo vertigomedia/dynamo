@@ -2,24 +2,28 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ExistentialQuantification #-}
--- |
+------------------------------------------------------------------------------
+-- | 
 -- Module      : Web.AWS.DynamoDB.Types
 -- Copyright   : (c) David Johnson, 2014
 -- Maintainer  : djohnson.m@gmail.com
 -- Stability   : experimental
 -- Portability : POSIX
+-- | 
+------------------------------------------------------------------------------
 module Web.AWS.DynamoDB.Types where
 
-import Prelude hiding (unlines)
+import           Data.Aeson
 import           Data.HashMap.Strict ( toList )
 import           Control.Monad       ( forM   ) 
 import           Control.Applicative ( pure, (<$>), (<*>), (<|>) )
 import           Control.Monad       ( mzero )
-import           Data.Aeson
 import           Data.Text           ( Text, unpack, split )
 import           Data.Time
-import           Text.Read  hiding   ( String )
-import           Text.Printf
+import           Prelude    hiding   ( unlines )
+import           Text.Read  hiding   ( String  )
+import           Text.Printf         ( printf  )
+import           Data.Maybe          ( fromMaybe )
 import           Web.AWS.DynamoDB.Helpers
 
 ------------------------------------------------------------------------------
@@ -98,7 +102,7 @@ instance ToJSON KeyType where
 -- | `FromJSON` instance for `KeyType`
 instance FromJSON KeyType where
    parseJSON (String "HASH")  = pure HASH
-   parseJSON (String "Range") = pure RANGE
+   parseJSON (String "RANGE") = pure RANGE
    parseJSON _ = mzero
 
 ------------------------------------------------------------------------------
@@ -148,7 +152,7 @@ data ThroughputResponse = ThroughputResponse {
    , writeCapacityUnitsResp :: Int -- ^ Required, Long, The maximum number of writes consumed per second before DynamoDB returns a ThrottlingException
    , lastIncreaseDateTimeResp :: Maybe UTCTime
    , lastDecreaseDateTimeResp :: Maybe UTCTime
-   , numberOfDecreasesTodayResp :: Int
+   , numberOfDecreasesTodayResp :: Maybe Int
   } deriving Eq
 
 instance Show ThroughputResponse where
@@ -163,7 +167,7 @@ instance FromJSON ThroughputResponse where
                         <*> o .: "WriteCapacityUnits"
                         <*> (fmap fromSeconds <$> o .:? "LastIncreaseDateTime")
                         <*> (fmap fromSeconds <$> o .:? "LastDecreaseDateTime")
-                        <*> o .: "NumberOfDecreasesToday"
+                        <*> o .:? "NumberOfDecreasesToday"
    parseJSON _ = mzero
 
 ------------------------------------------------------------------------------
@@ -181,6 +185,25 @@ data TableResponse = TableResponse {
   , tableResponseStatus                 :: Status
   } 
 
+------------------------------------------------------------------------------
+-- | `FromJSON` instance for `TableResponse`
+instance FromJSON TableResponse where
+  parseJSON (Object o) = do
+    desc <- (o .: "TableDescription" <|> o .: "Table")
+    TableResponse <$> desc .:? "AttributeDefinitions"
+                  <*> (fmap fromSeconds <$> desc .:? "CreationDateTime")
+                  <*> desc .:? "GlobalSecondaryIndexes"
+                  <*> desc .:? "KeySchema"
+                  <*> desc .:? "LocalSecondaryIndexes"
+                  <*> desc .: "ItemCount"
+                  <*> desc .: "ProvisionedThroughput"
+                  <*> desc .: "TableName"
+                  <*> desc .: "TableSizeBytes"
+                  <*> desc .: "TableStatus"
+  parseJSON _ = mzero
+
+------------------------------------------------------------------------------
+-- | Show instnace for `TableResponse`
 instance Show TableResponse where
   show TableResponse {..} = 
          printf "\n\
@@ -206,29 +229,12 @@ instance Show TableResponse where
          (show tableResponseGlobalSecondaryIndexes)
 
 ------------------------------------------------------------------------------
--- | `FromJSON` instance for `TableResponse`
-instance FromJSON TableResponse where
-  parseJSON (Object o) = do
-    desc <- (o .: "TableDescription" <|> o .: "Table")
-    TableResponse <$> desc .:? "AttributeDefinitions"
-                  <*> (fmap fromSeconds <$> desc .:? "CreationDateTime")
-                  <*> desc .:? "GlobalSecondaryIndexes"
-                  <*> desc .:? "KeySchema"
-                  <*> desc .:? "LocalSecondaryIndexes"
-                  <*> desc .: "ItemCount"
-                  <*> desc .: "ProvisionedThroughput"
-                  <*> desc .: "TableName"
-                  <*> desc .: "TableSizeBytes"
-                  <*> desc .: "TableStatus"
-  parseJSON _ = mzero
-
-------------------------------------------------------------------------------
 -- | Item for insertion or retrieval
 type Name = Text
 
 ------------------------------------------------------------------------------
 -- | Name for a Table
-newtype TableName a = TableName { unTable :: Text }
+newtype TableName = TableName { unTable :: Text }
        deriving (Show, Eq)
 
 ------------------------------------------------------------------------------
@@ -271,7 +277,6 @@ data ReturnValue = NONE | ALL_OLD | UPDATED_OLD | ALL_NEW | UPDATED_NEW
 -- | ToJSON Instance for `ReturnValue`
 instance ToJSON ReturnValue where
   toJSON = String . toText
-
 
 ------------------------------------------------------------------------------
 -- | Select on Query's
@@ -326,10 +331,11 @@ data PrimaryKeyType =
 
 ------------------------------------------------------------------------------
 -- | Local Secondary Index Request Type
+-- Local Secondary indices are not allowed on hash tables, only hash and range tables
 data LocalSecondaryIndex = LocalSecondaryIndex {
-      lsiIndexName :: Text
+      lsiIndexName  :: Text
     , lsiProjection :: Projection
-    , lsiKeySchema :: [KeySchema]
+    , lsiKeySchema  :: [KeySchema]
   } deriving (Show, Eq)
 
 ------------------------------------------------------------------------------
@@ -344,11 +350,11 @@ instance ToJSON LocalSecondaryIndex where
 ------------------------------------------------------------------------------
 -- | Local Secondary Index Response Type
 data LocalSecondaryIndexResponse = LocalSecondaryIndexResponse {
-      lsiRespIndexName :: Text
+      lsiRespIndexName      :: Text
     , lsiRespIndexSizeBytes :: Int
-    , lsiRespItemCount :: Int
-    , lsiRespProjection :: Projection
-    , lsiRespKeySchema :: [KeySchema]
+    , lsiRespItemCount      :: Int
+    , lsiRespProjection     :: Projection
+    , lsiRespKeySchema      :: [KeySchema]
   } deriving (Show, Eq)
 
 ------------------------------------------------------------------------------
@@ -358,8 +364,8 @@ instance FromJSON LocalSecondaryIndexResponse where
      LocalSecondaryIndexResponse <$> o .: "IndexName"
                                  <*> o .: "IndexSizeBytes"
                                  <*> o .: "ItemCount"
-                                 <*> o .: "KeySchema"
                                  <*> o .: "Projection"
+                                 <*> o .: "KeySchema"
    parseJSON _ = mzero
 
 ------------------------------------------------------------------------------
@@ -392,9 +398,9 @@ instance FromJSON GlobalSecondaryIndexResponse where
 -- | `GlobalSecondaryIndex` object
 data GlobalSecondaryIndex = GlobalSecondaryIndex {
     gsiIndexName      :: Text
-  , gsiKeySchema      :: [KeySchema]
   , gsiProjection     :: Projection
-  , gsiProvisionedThroughput :: Throughput 
+  , gsiProvisionedThroughput :: Throughput
+  , gsiKeySchema      :: [KeySchema]
   } deriving (Show, Eq)
 
 ------------------------------------------------------------------------------
@@ -402,9 +408,9 @@ data GlobalSecondaryIndex = GlobalSecondaryIndex {
 instance ToJSON GlobalSecondaryIndex where
   toJSON GlobalSecondaryIndex{..} =
     object [ "IndexName" .= gsiIndexName
-           , "KeySchema" .= gsiKeySchema
            , "Projection" .= gsiProjection
            , "ProvisionedThroughput" .= gsiProvisionedThroughput
+           , "KeySchema" .= gsiKeySchema
            ]
 
 ------------------------------------------------------------------------------
@@ -451,8 +457,12 @@ instance ToJSON Projection where
 -- | `FromJSON` instance for `Projection`
 instance FromJSON Projection where
    parseJSON (Object o) =
-     Projection <$> o .: "NonKeyAttributes"
-                <*> o .: "ProjectionType"
+     (Projection <$> o .: "NonKeyAttributes"
+                 <*> o .: "ProjectionType")
+                 <|>
+     (Projection <$> pure []
+                 <*> o .: "ProjectionType")
+     
    parseJSON _ = mzero
 
 ------------------------------------------------------------------------------
@@ -468,10 +478,9 @@ data ProjectionType =
 ------------------------------------------------------------------------------
 -- | `FromJSON` instance for `ProjectionType`
 instance FromJSON ProjectionType where
-   parseJSON (String x) =
-     pure $ case readMaybe (unpack x) :: Maybe ProjectionType of
-             Nothing -> UnknownProjectionType
-             Just x -> x
+   parseJSON (String "KEYS_ONLY") = pure KEYS_ONLY
+   parseJSON (String "INCLUDE")   = pure INCLUDE
+   parseJSON (String "ALL")       = pure ALL
    parseJSON _ = mzero
 
 ------------------------------------------------------------------------------
@@ -562,7 +571,5 @@ instance FromJSON DynamoErrorType where
    parseJSON (String x) = do
      let [_, t] = split (=='#') x
          typ    = unpack t
-     pure $ case readMaybe typ :: Maybe DynamoErrorType of
-      Just x  -> x
-      Nothing -> UnknownErrorType
+     pure $ fromMaybe UnknownErrorType (readMaybe typ :: Maybe DynamoErrorType)
    parseJSON _ = mzero
