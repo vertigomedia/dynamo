@@ -44,7 +44,7 @@ type Operation = ByteString
 ------------------------------------------------------------------------------
 -- | Development Mode flag, Debug Flag
 dev, debug :: Bool
-dev   = True
+dev   = False
 debug = False
 
 ------------------------------------------------------------------------------

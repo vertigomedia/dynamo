@@ -108,16 +108,34 @@ instance FromJSON KeyType where
 ------------------------------------------------------------------------------
 -- | Key Schema
 data KeySchema = KeySchema {
-      keySchemaAttributeName :: Text    -- ^ Required, Minimum length of 1. Maximum length of 255.
-    , keySchemaType          :: KeyType -- ^ Required, HASH or RANGE
+      keySchemaAttributeName :: Text       -- ^ Required, Minimum length of 1. Maximum length of 255.
+    , keySchemaType          :: KeyType    -- ^ Required, HASH or RANGE
   } deriving (Show, Eq)
+
+------------------------------------------------------------------------------
+-- | Key to KeySchema conversion
+keyToKeySchema :: Key -> KeySchema
+keyToKeySchema (Key x y _) = KeySchema x y
+
+------------------------------------------------------------------------------
+-- | Key to Attribute Conversion
+keyToAttribute :: Key -> AttributeDefinition
+keyToAttribute (Key x _ z) = AttributeDefinition x z
+
+------------------------------------------------------------------------------
+-- | A User-level abstraction for Dynamo Keys
+data Key = Key {
+      keyName       :: Text       -- ^ Required, Minimum length of 1. Maximum length of 255.
+    , keyType       :: KeyType    -- ^ Required, HASH or RANGE
+    , keyDynamoType :: DynamoType -- ^ The Dynamo type for this key (S | B | N) are the only valid types
+    } deriving (Show, Eq)
 
 ------------------------------------------------------------------------------
 -- | `ToJSON` instance for `KeySchema`
 instance ToJSON KeySchema where
   toJSON KeySchema{..} = object [
       "AttributeName" .= keySchemaAttributeName
-    , "KeyType" .= keySchemaType
+    , "KeyType"       .= keySchemaType
     ]
 
 ------------------------------------------------------------------------------
@@ -160,7 +178,7 @@ instance Show ThroughputResponse where
       printf "Read-Write Capacity: %d - %d" readCapacityUnitsResp writeCapacityUnitsResp
 
 ------------------------------------------------------------------------------
--- | `FromJSON` instance for `ThroughputResponse`
+-- | `FromJSON` instance for `ThroughputResponse`i
 instance FromJSON ThroughputResponse where
    parseJSON (Object o) =
      ThroughputResponse <$> o .: "ReadCapacityUnits"
@@ -235,7 +253,7 @@ type Name = Text
 ------------------------------------------------------------------------------
 -- | Name for a Table
 newtype TableName = TableName { unTable :: Text }
-       deriving (Show, Eq)
+   deriving (Show, Eq)
 
 ------------------------------------------------------------------------------
 -- | DynamoDB `Item`
@@ -312,13 +330,6 @@ instance ToJSON ComparisonOperator where
 type KeyName = Text
 
 ------------------------------------------------------------------------------
--- | `Key` object
-data Key = Key {
-    keyName :: KeyName
-  , keyType :: DynamoType
-  } deriving (Show, Eq)
-
-------------------------------------------------------------------------------
 -- | Type def for Keys as Items
 type KeyItem = Item
 
@@ -327,7 +338,7 @@ type KeyItem = Item
 data PrimaryKeyType =
     HashAndRangeType { hashKey :: Key, rangeKey :: Key }
   | HashType { hashKey :: Key }
-    deriving (Show, Eq)
+  deriving (Show, Eq)
 
 ------------------------------------------------------------------------------
 -- | Local Secondary Index Request Type
@@ -335,7 +346,7 @@ data PrimaryKeyType =
 data LocalSecondaryIndex = LocalSecondaryIndex {
       lsiIndexName  :: Text
     , lsiProjection :: Projection
-    , lsiKeySchema  :: [KeySchema]
+    , lsiKeySchema  :: [Key]
   } deriving (Show, Eq)
 
 ------------------------------------------------------------------------------
@@ -343,7 +354,7 @@ data LocalSecondaryIndex = LocalSecondaryIndex {
 instance ToJSON LocalSecondaryIndex where
   toJSON LocalSecondaryIndex{..} =
     object [ "IndexName" .= lsiIndexName
-           , "KeySchema" .= lsiKeySchema
+           , "KeySchema" .= map keyToKeySchema lsiKeySchema
            , "Projection" .= lsiProjection
            ]
 
@@ -400,7 +411,7 @@ data GlobalSecondaryIndex = GlobalSecondaryIndex {
     gsiIndexName      :: Text
   , gsiProjection     :: Projection
   , gsiProvisionedThroughput :: Throughput
-  , gsiKeySchema      :: [KeySchema]
+  , gsiKeySchema      :: [Key]
   } deriving (Show, Eq)
 
 ------------------------------------------------------------------------------
@@ -410,7 +421,7 @@ instance ToJSON GlobalSecondaryIndex where
     object [ "IndexName" .= gsiIndexName
            , "Projection" .= gsiProjection
            , "ProvisionedThroughput" .= gsiProvisionedThroughput
-           , "KeySchema" .= gsiKeySchema
+           , "KeySchema" .= map keyToKeySchema gsiKeySchema
            ]
 
 ------------------------------------------------------------------------------

@@ -1,11 +1,14 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
--- |
+------------------------------------------------------------------------------
+-- | 
 -- Module      : Web.AWS.DynamoDB.CreateTable
 -- Copyright   : (c) David Johnson, 2014
 -- Maintainer  : djohnson.m@gmail.com
 -- Stability   : experimental
 -- Portability : POSIX
+-- | 
+------------------------------------------------------------------------------
 module Web.AWS.DynamoDB.CreateTable
        ( -- * API
          createTable
@@ -17,10 +20,10 @@ module Web.AWS.DynamoDB.CreateTable
 
 import           Data.Aeson   
 import           Data.Text    ( Text )
+import           Data.List    ( nub  )
 
 import           Web.AWS.DynamoDB.Client ( callDynamo )
 import           Web.AWS.DynamoDB.Types  
--- import           Web.AWS.DynamoDB.Abstract
 
 ------------------------------------------------------------------------------
 -- | Make Request
@@ -31,7 +34,7 @@ createTable = callDynamo "CreateTable"
 -- | Make Request
 createTableDefault
   :: Text
-  -> PrimaryKeyType
+  -> [Key]
   -> Throughput
   -> Maybe [LocalSecondaryIndex]
   -> Maybe [GlobalSecondaryIndex]
@@ -47,32 +50,32 @@ createTableDefault
 -- | Types
 data CreateTable = CreateTable {
      createTableName                   :: Text -- ^ Required, a-z, A-Z, 0-9, '_', '-', '.' Supported, Between 3 and 255 characters
-   , createTablePrimaryKey             :: PrimaryKeyType -- ^ Specify Key Type(s)
-   , createTableProvisionedThroughput  :: Throughput -- ^ Required
+   , createTablePrimaryKey             :: [Key]                        -- ^ Specify Key Type(s)
+   , createTableProvisionedThroughput  :: Throughput                   -- ^ Required
    , createTableGlobalSecondaryIndexes :: Maybe [GlobalSecondaryIndex] -- ^ Not Required
    , createTableLocalSecondaryIndexes  :: Maybe [LocalSecondaryIndex]  -- ^ Not Required
    } deriving (Show, Eq)
 
 ------------------------------------------------------------------------------
 -- | `CreateTable` helper
-toSchemaDef :: PrimaryKeyType -> ([AttributeDefinition], [KeySchema])
-toSchemaDef (HashAndRangeType (Key hashName hashType) (Key rangeName rangeType)) =
-  ([ AttributeDefinition hashName hashType
-   , AttributeDefinition rangeName rangeType ],
-   [ KeySchema hashName HASH
-   , KeySchema rangeName RANGE
-   ])
-toSchemaDef (HashType (Key hashName hashType)) =
-      ( [AttributeDefinition hashName hashType], [KeySchema hashName HASH] )
+toAttributeAndSchema :: [Key] -> ([AttributeDefinition], [KeySchema])
+toAttributeAndSchema keys = (map keyToAttribute keys, map keyToKeySchema keys)
 
 ------------------------------------------------------------------------------
 -- | `ToJSON` Instance for `CreateTable`
 instance ToJSON CreateTable where
   toJSON CreateTable{..} =
-    let (attrs, keyschema) = toSchemaDef createTablePrimaryKey
+    let (attrs, keyschema) = toAttributeAndSchema createTablePrimaryKey
+        lsiattrs, gsiattrs :: [AttributeDefinition]
+        lsiattrs = case createTableLocalSecondaryIndexes of
+                    Nothing -> []
+                    Just lsi -> map keyToAttribute $ concatMap lsiKeySchema lsi
+        gsiattrs = case createTableGlobalSecondaryIndexes of
+                    Nothing -> []
+                    Just gsi -> map keyToAttribute $ concatMap gsiKeySchema gsi
         defaultNothing x = if x == Just [] then Nothing else x
     in object [
-        "AttributeDefinitions" .= attrs 
+        "AttributeDefinitions" .= (nub $ attrs ++ lsiattrs ++ gsiattrs)
       , "GlobalSecondaryIndexes" .= defaultNothing createTableGlobalSecondaryIndexes
       , "KeySchema" .= keyschema
       , "LocalSecondaryIndexes" .= defaultNothing createTableLocalSecondaryIndexes
