@@ -29,9 +29,11 @@ putItem = callDynamo "PutItem"
 ------------------------------------------------------------------------------
 -- | Default method for making a `PutItem` Request
 putItemDefault :: FromJSON a => Text -> [Item] -> IO (Either DynamoError a)
-putItemDefault name items =
+putItemDefault name items = do
+  print items
+  print $ toJSON $ PutItem items name Nothing Nothing Nothing Nothing Nothing Nothing 
   callDynamo "PutItem" $
-    PutItem items name Nothing Nothing Nothing Nothing Nothing Nothing
+    PutItem items name Nothing Nothing Nothing Nothing Nothing Nothing 
        
 ------------------------------------------------------------------------------
 -- | `PutItem` object
@@ -44,7 +46,7 @@ data PutItem = PutItem {
    , putItemExpressionAttributeValues   :: Maybe Text -- ^ Not Required 
    , putItemReturnConsumedCapacity      :: Maybe Text -- ^ Not Required 
    , putItemReturnItemCollectionMetrics :: Maybe Text -- ^ Not Required 
-   , putItemReturnValues                :: Maybe Text -- ^ Not Required 
+   , putItemReturnValue                 :: Maybe ReturnValue -- ^ Not Required 
   } deriving (Show)
 
 ------------------------------------------------------------------------------
@@ -54,5 +56,5 @@ instance ToJSON PutItem where
     object [  "Item" .= let x = map (\(Item k t v) -> k .= object [ toText t .= v ]) putItems
                         in object x
            ,  "TableName" .= putItemTableName
-           ,  "ReturnValues" .= String "ALL_OLD"
+           ,  "ReturnValues" .= putItemReturnValue
            ]

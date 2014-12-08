@@ -44,7 +44,10 @@ createTableDefault
   keytype
   throughput
   lsi
-  gsi = callDynamo "CreateTable" $ CreateTable tableName keytype throughput gsi lsi
+  gsi = do
+    let c = CreateTable tableName keytype throughput gsi lsi
+    print c
+    callDynamo "CreateTable" $ CreateTable tableName keytype throughput gsi lsi
 
 ------------------------------------------------------------------------------
 -- | Types

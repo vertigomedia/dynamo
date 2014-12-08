@@ -45,7 +45,7 @@ type Operation = ByteString
 -- | Development Mode flag, Debug Flag
 dev, debug :: Bool
 dev   = False
-debug = False
+debug = True
 
 ------------------------------------------------------------------------------
 -- | Request issuer
