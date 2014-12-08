@@ -18,7 +18,7 @@ import           Web.AWS.DynamoDB.Types
 
 ------------------------------------------------------------------------------
 -- | Make Request
-query :: FromJSON a => Query -> IO (Either DynamoError a)
+query :: (Show a, FromJSON a) => Query -> IO (Either DynamoError a)
 query = callDynamo "Query" 
 
 ------------------------------------------------------------------------------

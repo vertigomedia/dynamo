@@ -18,7 +18,7 @@ import           Web.AWS.DynamoDB.Helpers
 ------------------------------------------------------------------------------
 -- | Delete Item
 deleteItem
-  :: FromJSON a
+  :: (Show a, FromJSON a)
   => DeleteItem
   -> IO (Either DynamoError a)
 deleteItem = callDynamo "DeleteItem"

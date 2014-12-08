@@ -23,12 +23,12 @@ import           Web.AWS.DynamoDB.Helpers
 
 ------------------------------------------------------------------------------
 -- | Make Request
-putItem :: FromJSON a => PutItem -> IO (Either DynamoError a)
+putItem :: (Show a, FromJSON a) => PutItem -> IO (Either DynamoError a)
 putItem = callDynamo "PutItem" 
 
 ------------------------------------------------------------------------------
 -- | Default method for making a `PutItem` Request
-putItemDefault :: FromJSON a => Text -> [Item] -> IO (Either DynamoError a)
+putItemDefault :: (Show a, FromJSON a) => Text -> [Item] -> IO (Either DynamoError a)
 putItemDefault name items = do
   print items
   print $ toJSON $ PutItem items name Nothing Nothing Nothing Nothing Nothing Nothing 

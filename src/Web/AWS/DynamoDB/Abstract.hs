@@ -38,29 +38,29 @@ class ToDynamo a where
   gsi            :: a -> Maybe [GlobalSecondaryIndex]
 
   -- | Table Operations
-  createTable' :: FromJSON a => a -> IO (Either DynamoError TableResponse)
+  createTable' :: a -> IO (Either DynamoError TableResponse)
   createTable' x = createTableDefault (tableName x) (primaryKeys x) (throughput x) (lsi x) (gsi x)
 
-  describeTable' :: FromJSON a => a -> IO (Either DynamoError TableResponse)
+  describeTable' :: a -> IO (Either DynamoError TableResponse)
   describeTable' = describeTable . DescribeTable . tableName
 
-  deleteTable' :: FromJSON a => a -> IO (Either DynamoError TableResponse)
+  deleteTable' :: a -> IO (Either DynamoError TableResponse)
   deleteTable' = deleteTable . DeleteTable . tableName
 
-  updateTable' :: FromJSON a => a -> Throughput -> IO (Either DynamoError TableResponse)
+  updateTable' :: a -> Throughput -> IO (Either DynamoError TableResponse)
   updateTable' x tp = updateTable $ UpdateTable (tableName x) tp
 
   -- | Item Operations
-  putItem' :: FromJSON a => a -> IO (Either DynamoError (Maybe a))
+  putItem' :: a -> IO (Either DynamoError (Maybe a))
   putItem' x = fmap fromItems <$> (putItemDefault (tableName x) (toItems x))
 
-  deleteItem' :: FromJSON a => a -> [Item] -> ReturnValue -> IO (Either DynamoError (Maybe a))
+  deleteItem' :: a -> [Item] -> ReturnValue -> IO (Either DynamoError (Maybe a))
   deleteItem' x keys r = fmap fromItems <$> (deleteItem $ DeleteItem keys (tableName x) r)
 
-  getItem' :: FromJSON a => a -> [Item] -> IO (Either DynamoError (Maybe a))
+  getItem' :: a -> [Item] -> IO (Either DynamoError (Maybe a))
   getItem' x keys = fmap fromItems <$> (getItem $ GetItem keys (tableName x))
 
-  updateItem' :: FromJSON a => a -> [Item] -> Text -> [Item] -> IO (Either DynamoError (Maybe a))
-  updateItem' w = updateItemDefault (tableName w) 
+  updateItem' :: a -> [Item] -> Text -> [Item] -> IO (Either DynamoError (Maybe a))
+  updateItem' w x y z = fmap fromItems <$> (updateItemDefault (tableName w) x y z)
 
 

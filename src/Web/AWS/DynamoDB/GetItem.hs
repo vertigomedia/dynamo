@@ -19,7 +19,7 @@ import           Web.AWS.DynamoDB.Types
 
 ------------------------------------------------------------------------------
 -- | Make Request
-getItem :: FromJSON a => GetItem -> IO (Either DynamoError a)
+getItem :: (Show a, FromJSON a) => GetItem -> IO (Either DynamoError a)
 getItem = callDynamo "GetItem" 
 
 ------------------------------------------------------------------------------

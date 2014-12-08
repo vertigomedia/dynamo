@@ -50,7 +50,7 @@ debug = True
 ------------------------------------------------------------------------------
 -- | Request issuer
 callDynamo
-  :: (ToJSON a, FromJSON b)
+  :: (ToJSON a, FromJSON b, Show b)
   => Operation
   -> a
   -> IO (Either DynamoError b)
@@ -85,6 +85,8 @@ callDynamo op bs = do
                          return $ Left $ ServerError code errorJson
         _ -> return $ Left $ UnknownError (show e)
     Right resp -> do
+     when debug $ do putStrLn "after"
+                     print resp
      case resp of
        Nothing -> return $ Left ParseError
        Just x ->  

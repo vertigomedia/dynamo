@@ -16,7 +16,7 @@ import           Web.AWS.DynamoDB.Types
 
 ------------------------------------------------------------------------------
 -- | Make Request
-updateTable :: FromJSON a => UpdateTable -> IO (Either DynamoError a)
+updateTable :: (Show a, FromJSON a) => UpdateTable -> IO (Either DynamoError a)
 updateTable = callDynamo "UpdateTable" 
 
 ------------------------------------------------------------------------------

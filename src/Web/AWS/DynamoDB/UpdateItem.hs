@@ -22,12 +22,12 @@ import           Web.AWS.DynamoDB.Helpers
 
 ------------------------------------------------------------------------------
 -- | Make Request
-updateItem :: FromJSON a => UpdateItem -> IO (Either DynamoError a)
+updateItem :: (FromJSON a, Show a) => UpdateItem -> IO (Either DynamoError a)
 updateItem = callDynamo "UpdateItem" 
 
 ------------------------------------------------------------------------------
 -- | Default request method for `UpdateItem`
-updateItemDefault :: FromJSON a => Text -> [Item] -> Text -> [Item] -> IO (Either DynamoError a)
+updateItemDefault :: (FromJSON a, Show a) => Text -> [Item] -> Text -> [Item] -> IO (Either DynamoError a)
 updateItemDefault name keys exp avals = updateItem $ 
   UpdateItem name keys exp
   avals Nothing Nothing
