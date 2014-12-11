@@ -13,18 +13,26 @@
 ------------------------------------------------------------------------------
 module Web.AWS.DynamoDB.Types where
 
-import           Data.Aeson
-import           Data.HashMap.Strict ( toList )
-import           Control.Monad       ( forM   ) 
-import           Control.Applicative ( pure, (<$>), (<*>), (<|>) )
-import           Control.Monad       ( mzero )
-import           Data.Text           ( Text, unpack, split )
-import           Data.Time
+import Control.Applicative ( pure, (<$>), (<*>), (<|>) )
+import Control.Monad ( forM   )
+import Control.Monad ( mzero )
+import Data.Aeson
+import Data.ByteString (ByteString)
+import Data.HashMap.Strict ( toList )
+import Data.Maybe ( fromMaybe )
+import Data.Text ( Text, unpack, split )
+import Data.Time
 import           Prelude    hiding   ( unlines )
+import Text.Printf ( printf  )
 import           Text.Read  hiding   ( String  )
-import           Text.Printf         ( printf  )
-import           Data.Maybe          ( fromMaybe )
-import           Web.AWS.DynamoDB.Helpers
+import Web.AWS.DynamoDB.Helpers
+
+------------------------------------------------------------------------------
+-- | Public AWS Key
+newtype PublicKey = PublicKey ByteString deriving (Show, Eq)
+------------------------------------------------------------------------------
+-- | Secret AWS Key
+newtype SecretKey = SecretKey ByteString  deriving (Show, Eq)
 
 ------------------------------------------------------------------------------
 -- | DynamoDB Types: 
@@ -46,6 +54,7 @@ data DynamoType =
 -- | `ToJSON` instance for `DynamoType`
 instance ToJSON DynamoType where
   toJSON = String . toText
+
 
 ------------------------------------------------------------------------------
 -- | `FromJSON` instance for `DynamoType`
@@ -509,6 +518,7 @@ data DynamoError =
     ProducerExhausted
   | ParseError
   | Err String
+  | RequestCreationError String
   | UnknownError String
   | ClientError HTTPErrorCode DynamoErrorDetails -- ^ Any error indicated by a 4xx response
   | ServerError HTTPErrorCode DynamoErrorDetails -- ^ Any error indicated by a 5xx response

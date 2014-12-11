@@ -12,7 +12,9 @@
 ------------------------------------------------------------------------------
 module Web.AWS.DynamoDB.Client where
 
+import           Control.Concurrent.Async (async, waitCatch)
 import           Control.Exception
+import           Control.Retry
 import           Control.Monad      (when)
 import           Data.Text          (pack)
 import           Control.Applicative
@@ -51,56 +53,67 @@ debug = True
 -- | Request issuer
 callDynamo
   :: (ToJSON a, FromJSON b, Show b)
-  => Operation
+  => Manager
+  -> Operation
+  -> PublicKey
+  -> SecretKey
   -> a
   -> IO (Either DynamoError b)
-callDynamo op bs = do
+callDynamo mgr op public secret bs = do
   let url = bool "https://dynamodb.us-east-1.amazonaws.com:443" "http://localhost:8000" dev
   req <- parseUrl url
   let rawjson = L.toStrict $ encode bs
   when debug $ print rawjson
-  Right heads <- createRequest rawjson op
-  let req' = req {
-       method = "POST"
-     , requestHeaders = heads
-     , requestBody = stream $ PB.fromLazy (encode bs)
-    }
-  res <- try (withManager tlsManagerSettings $ \m -> 
-           withHTTP req' m $ \resp -> do
-             evalStateT (parse $ fromJSON <$> json') (responseBody resp))
-  case res of
-    Left e -> 
-      case fromException e of
-        Just (StatusCodeException (Status num _) headers _) -> do
-              let res = lookup "X-Response-Body-Start" headers 
-                  errorJson = case res of 
+  result <- createRequest rawjson op public secret
+  case result of
+    Left err -> return $ Left (RequestCreationError err)
+    Right heads -> do
+     let req' = req { method = "POST"
+                    , requestHeaders = heads
+                    , requestBody = stream $ PB.fromLazy (encode bs)
+                    }
+     let backOffPolicy = exponentialBackoff 5 
+     res <- waitCatch =<< async (withHTTP req' mgr $ \resp -> 
+              evalStateT (parse $ fromJSON <$> json') (responseBody resp))
+     case res of
+       Left e -> 
+         case fromException e of
+           Just (StatusCodeException (Status num _) headers _) -> do
+             let res = lookup "X-Response-Body-Start" headers 
+                 errorJson = case res of 
                     Nothing -> DynamoErrorDetails ClientParsingError "no json body"
                     Just x -> case eitherDecodeStrict x of
                                 Left m -> DynamoErrorDetails ClientParsingError (pack m)
                                 Right k -> k
-              case num of
-                code | code >= 400 && code < 500 -> do
-                         return $ Left $ ClientError code errorJson
-                     | code >= 500 -> do
-                         return $ Left $ ServerError code errorJson
-        _ -> return $ Left $ UnknownError (show e)
-    Right resp -> do
-     when debug $ do putStrLn "after"
-                     print resp
-     case resp of
-       Nothing -> return $ Left ParseError
-       Just x ->  
-         case x of
-           Left _ -> return $ Left ParseError
-           Right y -> 
-             case y of
-               Success z -> return $ Right z
-               Error g   -> return $ Left $ Err g
+             return . Left $ case num of
+                        code | code >= 400 && code < 500 -> ClientError code errorJson
+                             | code >= 500 -> ServerError code errorJson
+           _ -> return $ Left $ UnknownError (show e)
+       Right resp -> do
+         when debug $ do putStrLn "after"
+                         print resp
+         return $ case resp of
+           Nothing -> Left ParseError
+           Just x ->  
+             case x of
+               Left _ -> Left ParseError
+               Right y -> 
+                 case y of
+                   Success z -> Right z
+                   Error g   -> Left $ Err g
   where
-    createRequest :: ByteString -> Operation -> IO (Either String RequestHeaders)
-    createRequest payload operation = do
-      (public, private) <- getKeys
-      creds <- newCredentials public private
+    createRequest
+        :: ByteString
+        -> Operation
+        -> PublicKey
+        -> SecretKey
+        -> IO (Either String RequestHeaders)
+    createRequest
+      payload
+      operation
+      (PublicKey public)
+      (SecretKey secret) = do
+      creds <- newCredentials public secret
       now   <- getCurrentTime
       signPostRequestIO creds UsEast1 ServiceNamespaceDynamodb now "POST"
            ([] :: UriPath)

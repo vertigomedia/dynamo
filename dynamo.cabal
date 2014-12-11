@@ -61,6 +61,7 @@ library
   hs-source-dirs:      src
   build-depends:       aeson
                      , aws-general
+                     , async
                      , base >=4.7 && <4.8
                      , bytestring
                      , case-insensitive
@@ -72,6 +73,7 @@ library
                      , pipes-attoparsec
                      , pipes-bytestring
                      , pipes-http
+                     , retry
                      , text
                      , time
                      , transformers

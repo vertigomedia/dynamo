@@ -25,12 +25,6 @@ toBS :: Show a => a -> ByteString
 toBS = B8.pack . show
 
 ------------------------------------------------------------------------------
--- | Key Retrieval Helpers
-getKeys :: IO (ByteString, ByteString)
-getKeys = do [public, private] <- map (drop 1 . dropWhile (/=':')) . lines <$> readFile "/Users/dmj/.awskeys-vertigo"
-             return (B8.pack public, B8.pack private)
-
-------------------------------------------------------------------------------
 -- | Convert an `Integer` to a `UTCTime`
 fromSeconds
   :: Integer
