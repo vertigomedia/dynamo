@@ -151,8 +151,8 @@ instance FromJSON KeySchema where
 -- Represents the provisioned throughput settings for a specified
 -- table or index. The settings can be modified using the UpdateTable operation.
 data Throughput = Throughput {
-     readCapacityUnits :: Int -- ^ Required, Long, The maximum number of strongly consistent reads consumed per second before DynamoDB returns a ThrottlingException
-   , writeCapacityUnits :: Int -- ^ Required, Long, The maximum number of writes consumed per second before DynamoDB returns a ThrottlingException
+     readCapacityUnits :: Integer -- ^ Required, Long, The maximum number of strongly consistent reads consumed per second before DynamoDB returns a ThrottlingException
+   , writeCapacityUnits :: Integer -- ^ Required, Long, The maximum number of writes consumed per second before DynamoDB returns a ThrottlingException
   } deriving (Show, Eq)
 
 ------------------------------------------------------------------------------
@@ -166,11 +166,11 @@ instance ToJSON Throughput where
 ------------------------------------------------------------------------------
 -- | `ThroughputResponse` object
 data ThroughputResponse = ThroughputResponse {
-     readCapacityUnitsResp :: Int -- ^ Required, Long, The maximum number of strongly consistent reads consumed per second before DynamoDB returns a ThrottlingException
-   , writeCapacityUnitsResp :: Int -- ^ Required, Long, The maximum number of writes consumed per second before DynamoDB returns a ThrottlingException
+     readCapacityUnitsResp :: Integer -- ^ Required, Long, The maximum number of strongly consistent reads consumed per second before DynamoDB returns a ThrottlingException
+   , writeCapacityUnitsResp :: Integer -- ^ Required, Long, The maximum number of writes consumed per second before DynamoDB returns a ThrottlingException
    , lastIncreaseDateTimeResp :: Maybe UTCTime
    , lastDecreaseDateTimeResp :: Maybe UTCTime
-   , numberOfDecreasesTodayResp :: Maybe Int
+   , numberOfDecreasesTodayResp :: Maybe Integer
   } deriving Eq
 
 instance Show ThroughputResponse where
@@ -196,10 +196,10 @@ data TableResponse = TableResponse {
   , tableResponseGlobalSecondaryIndexes :: Maybe [GlobalSecondaryIndexResponse]
   , tableResponseKeySchema              :: Maybe [KeySchema]
   , tableResponseLocalSecondaryIndexes  :: Maybe [LocalSecondaryIndexResponse]
-  , tableResponseItemCount              :: Int
+  , tableResponseItemCount              :: Integer
   , tableResponseProvisionedThroughput  :: ThroughputResponse
   , tableResponseName                   :: Text
-  , tableResponseSizeBytes              :: Int
+  , tableResponseSizeBytes              :: Integer
   , tableResponseStatus                 :: Status
   } 
 
@@ -362,8 +362,8 @@ instance ToJSON LocalSecondaryIndex where
 -- | Local Secondary Index Response Type
 data LocalSecondaryIndexResponse = LocalSecondaryIndexResponse {
       lsiRespIndexName      :: Text
-    , lsiRespIndexSizeBytes :: Int
-    , lsiRespItemCount      :: Int
+    , lsiRespIndexSizeBytes :: Integer
+    , lsiRespItemCount      :: Integer
     , lsiRespProjection     :: Projection
     , lsiRespKeySchema      :: [KeySchema]
   } deriving (Show, Eq)
@@ -383,9 +383,9 @@ instance FromJSON LocalSecondaryIndexResponse where
 -- | Global Secondary Index Response object
 data GlobalSecondaryIndexResponse = GlobalSecondaryIndexResponse {
     gsiRespIndexName      :: Text
-  , gsiRespIndexSizeBytes :: Int
+  , gsiRespIndexSizeBytes :: Integer
   , gsiRespIndexStatus    :: Status
-  , gsiRespItemCount      :: Int
+  , gsiRespItemCount      :: Integer
   , gsiRespKeySchema      :: [KeySchema]
   , gsiRespProjection     :: Projection
   , gsiRespProvisionedThroughput :: ThroughputResponse

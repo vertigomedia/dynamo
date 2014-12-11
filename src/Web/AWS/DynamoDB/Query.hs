@@ -32,19 +32,19 @@ defaultQuery t cs = Query t cs Nothing Nothing Nothing
 ------------------------------------------------------------------------------
 -- | You can query a table, primary key
 data Query = Query {
-    queryTableName :: Text                          -- ^ Required
-  , queryKeyConditions :: [Condition]               -- ^ Required
-  , queryConsistentRead :: Maybe Bool               -- ^ Not Required, defaults to False (eventually consistent)
-  , queryLimit :: Maybe Int                         -- ^ Not Required
-  , queryExpressionAttributeNames :: Maybe Text     -- ^ Not Required
-  , queryExpressionAttributeValues :: Maybe Text    -- ^ Not Required
-  , queryFilterExpression :: Maybe Text             -- ^ Not Required
-  , queryProjectionExpression :: Maybe Text         -- ^ Not Required
-  , queryConditionExpression :: Maybe Text          -- ^ Not Required
-  , queryIndexName :: Maybe Text                    -- ^ Not Required
-  , queryReturnedConsumedCapacity :: Maybe Capacity -- ^ Not Required
-  , queryScanIndexForward :: Maybe Bool             -- ^ Not Required
-  , querySelect :: Maybe Select                     -- ^ Not Required
+    queryTableName                 :: Text           -- ^ Required
+  , queryKeyConditions             :: [Condition]    -- ^ Required
+  , queryConsistentRead            :: Maybe Bool     -- ^ Not Required, defaults to False (eventually consistent)
+  , queryLimit                     :: Maybe Int      -- ^ Not Required
+  , queryExpressionAttributeNames  :: Maybe Text     -- ^ Not Required
+  , queryExpressionAttributeValues :: Maybe Text     -- ^ Not Required
+  , queryFilterExpression          :: Maybe Text     -- ^ Not Required
+  , queryProjectionExpression      :: Maybe Text     -- ^ Not Required
+  , queryConditionExpression       :: Maybe Text     -- ^ Not Required
+  , queryIndexName                 :: Maybe Text     -- ^ Not Required
+  , queryReturnedConsumedCapacity  :: Maybe Capacity -- ^ Not Required
+  , queryScanIndexForward          :: Maybe Bool     -- ^ Not Required
+  , querySelect                    :: Maybe Select   -- ^ Not Required
   } deriving (Show)
 
 ------------------------------------------------------------------------------
