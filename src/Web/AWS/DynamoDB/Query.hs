@@ -16,10 +16,18 @@ import           Web.AWS.DynamoDB.Client
 import           Web.AWS.DynamoDB.Helpers
 import           Web.AWS.DynamoDB.Types
 
+import           Pipes.HTTP
+
 ------------------------------------------------------------------------------
 -- | Make Request
-query :: (Show a, FromJSON a) => Query -> IO (Either DynamoError a)
-query = callDynamo "Query" 
+query
+  :: (Show a, FromJSON a)
+  => Manager
+  -> PublicKey
+  -> SecretKey
+  -> Query
+  -> IO (Either DynamoError a)
+query mgr pub secret = callDynamo QueryOp mgr pub secret
 
 ------------------------------------------------------------------------------
 -- | Query helper

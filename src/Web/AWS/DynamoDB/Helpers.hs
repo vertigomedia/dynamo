@@ -5,6 +5,7 @@
 -- Maintainer  : djohnson.m@gmail.com
 -- Stability   : experimental
 -- Portability : POSIX
+-- 
 module Web.AWS.DynamoDB.Helpers where
 
 import           Control.Applicative

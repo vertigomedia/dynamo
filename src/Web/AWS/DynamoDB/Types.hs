@@ -594,3 +594,30 @@ instance FromJSON DynamoErrorType where
          typ    = unpack t
      pure $ fromMaybe UnknownErrorType (readMaybe typ :: Maybe DynamoErrorType)
    parseJSON _ = mzero
+
+------------------------------------------------------------------------------
+-- | Dynamo Operation Type, specified during request construction
+data DynamoOp =
+    QueryOp
+  | CreateTableOp
+  | DescribeTableOp
+  | UpdateTableOp
+  | DeleteTableOp
+  | PutItemOp
+  | GetItemOp
+  | UpdateItemOp
+  | DeleteItemOp
+    deriving (Eq)
+
+------------------------------------------------------------------------------
+-- | Show Instance for Dynamo Op
+instance Show DynamoOp where
+    show QueryOp         = "Query"
+    show CreateTableOp   = "Create"
+    show DescribeTableOp = "Describe"
+    show UpdateTableOp   = "Update"
+    show DeleteTableOp   = "Delete"
+    show PutItemOp       = "PutItem"
+    show GetItemOp       = "GetItem"
+    show UpdateItemOp    = "UpdateItem"
+    show DeleteItemOp    = "DeleteItem"

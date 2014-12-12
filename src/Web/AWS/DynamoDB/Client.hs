@@ -1,5 +1,5 @@
-{-# LANGUAGE RankNTypes #-}
-{-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE RankNTypes        #-}
+{-# LANGUAGE RecordWildCards   #-}
 {-# LANGUAGE OverloadedStrings #-}
 ------------------------------------------------------------------------------
 -- | 
@@ -8,15 +8,15 @@
 -- Maintainer  : djohnson.m@gmail.com
 -- Stability   : experimental
 -- Portability : POSIX
--- | 
+-- 
 ------------------------------------------------------------------------------
 module Web.AWS.DynamoDB.Client where
 
 import           Control.Concurrent.Async (async, waitCatch)
 import           Control.Exception
 import           Control.Retry
-import           Control.Monad      (when)
-import           Data.Text          (pack)
+import           Control.Monad            ( when )
+import           Data.Text                ( pack )
 import           Control.Applicative
 import           Data.Aeson
 
@@ -35,13 +35,9 @@ import           Aws.General hiding (parse)
 import           Pipes.HTTP
 import qualified Pipes.ByteString as PB 
 import           Web.AWS.DynamoDB.Helpers
-import           Pipes.Attoparsec (parse) -- ParsingError(..)
+import           Pipes.Attoparsec    (parse) -- ParsingError(..)
 
 import           Web.AWS.DynamoDB.Types
-
-------------------------------------------------------------------------------
--- | Operation Type
-type Operation = ByteString
 
 ------------------------------------------------------------------------------
 -- | Development Mode flag, Debug Flag
@@ -53,8 +49,8 @@ debug = True
 -- | Request issuer
 callDynamo
   :: (ToJSON a, FromJSON b, Show b)
-  => Manager
-  -> Operation
+  => DynamoOp
+  -> Manager
   -> PublicKey
   -> SecretKey
   -> a
@@ -101,30 +97,30 @@ callDynamo mgr op public secret bs = do
                  case y of
                    Success z -> Right z
                    Error g   -> Left $ Err g
-  where
-    createRequest
-        :: ByteString
-        -> Operation
-        -> PublicKey
-        -> SecretKey
-        -> IO (Either String RequestHeaders)
-    createRequest
+
+createRequest
+  :: ByteString
+  -> DynamoOp
+  -> PublicKey
+  -> SecretKey
+  -> IO (Either String RequestHeaders)
+createRequest
+  payload
+  operation
+  (PublicKey public)
+  (SecretKey secret) = do
+    creds <- newCredentials public secret
+    now   <- getCurrentTime
+    signPostRequestIO creds UsEast1 ServiceNamespaceDynamodb now "POST"
+      ([] :: UriPath)
+      ([] :: UriQuery)
+      ( [ ("Accept-Encoding", "gzip")
+      ,   ("connection", "Keep-Alive")
+      ,   ("content-type", "application/x-amz-json-1.0")
+      ,   ("Host", "dynamodb.us-east-1.amazonaws.com:443")
+      ,   ("x-amz-target", "DynamoDB_20120810." <> toBS operation)
+      ] :: RequestHeaders)
       payload
-      operation
-      (PublicKey public)
-      (SecretKey secret) = do
-      creds <- newCredentials public secret
-      now   <- getCurrentTime
-      signPostRequestIO creds UsEast1 ServiceNamespaceDynamodb now "POST"
-           ([] :: UriPath)
-           ([] :: UriQuery)
-           ( [ ("Accept-Encoding", "gzip")
-           ,   ("connection", "Keep-Alive")
-           ,   ("content-type", "application/x-amz-json-1.0")
-           ,   ("Host", "dynamodb.us-east-1.amazonaws.com:443")
-           ,   ("x-amz-target", "DynamoDB_20120810." <> operation)
-             ] :: RequestHeaders)
-           payload
 
 
 

@@ -27,8 +27,10 @@ import           Web.AWS.DynamoDB.Types
 
 ------------------------------------------------------------------------------
 -- | Make Request
-createTable :: CreateTable -> IO (Either DynamoError TableResponse)
-createTable = callDynamo "CreateTable" 
+createTable
+    :: CreateTable
+    -> IO (Either DynamoError TableResponse)
+createTable = callDynamo 
 
 ------------------------------------------------------------------------------
 -- | Make Request
