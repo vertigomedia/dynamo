@@ -17,16 +17,10 @@ description:
     DynamoDB is a Key-Value store offering by Amazon Web Services that manages and maintains your data while providing limitless scalability
     .
     [Original Paper]
-    <http://aws.amazon.com/documentation/dynamodb.pdf>
+    <http://www.allthingsdistributed.com/files/amazon-dynamo-sosp2007.pdf>
     .
     [100% Haddock Coverage]
     All code written for this library is documented to completion with the haddock documentation tool
-    .
-    [50+ Hspec Tests] Thoroughly unit-tested with hspec.
-    All API commands are unit-tested before inclusion into the API (see the tests directory).
-    To run the tests, perform the following:
-    .
-    >  cabal clean && cabal configure --enable-tests && cabal build spec && dist/build/spec/spec
     .
 
     [Database Operations - <https://stripe.com/docs/api#pagination>]
