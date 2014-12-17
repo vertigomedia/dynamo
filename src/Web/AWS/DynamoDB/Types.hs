@@ -300,19 +300,19 @@ instance ToJSON ReturnValue where
 -- | Select on Query's
 -- If not specified DynamoDB will default to ALL_Attributes
 data Select =
-    AllAttributes -- ^ Returns all of the item attributes from the specified table or index
+    AllAttributes          -- ^ Returns all of the item attributes from the specified table or index
   | AllProjectedAttributes -- ^ Only for querying an Index
-  | Count -- ^ Returns the number of matching items rather than the matching items themselves
-  | SpecificAttributes -- ^ Returns only the attributes listed in 'AttributesToGet'
+  | Count                  -- ^ Returns the number of matching items rather than the matching items themselves
+  | SpecificAttributes     -- ^ Returns only the attributes listed in 'AttributesToGet'
     deriving (Show)
 
 ------------------------------------------------------------------------------
 -- | `ToJSON` instance for `Select` 
 instance ToJSON Select where
-  toJSON AllAttributes = String "ALL_ATTRIBUTES"
+  toJSON AllAttributes          = String "ALL_ATTRIBUTES"
   toJSON AllProjectedAttributes = String "ALL_PROJECTED_ATTRIBUTES"
-  toJSON SpecificAttributes = String "SPECIFIC_ATTRIBUTES"
-  toJSON Count = String "COUNT"
+  toJSON SpecificAttributes     = String "SPECIFIC_ATTRIBUTES"
+  toJSON Count                  = String "COUNT"
 
 ------------------------------------------------------------------------------
 -- | `ComparisonOperator` object
@@ -337,7 +337,7 @@ type KeyItem = Item
 -- | `PrimaryKeyType` object
 data PrimaryKeyType =
     HashAndRangeType { hashKey :: Key, rangeKey :: Key }
-  | HashType { hashKey :: Key }
+  | HashType         { hashKey :: Key }
   deriving (Show, Eq)
 
 ------------------------------------------------------------------------------
@@ -353,8 +353,8 @@ data LocalSecondaryIndex = LocalSecondaryIndex {
 -- | `ToJSON` Instance for `LocalSecondaryIndex`
 instance ToJSON LocalSecondaryIndex where
   toJSON LocalSecondaryIndex{..} =
-    object [ "IndexName" .= lsiIndexName
-           , "KeySchema" .= map keyToKeySchema lsiKeySchema
+    object [ "IndexName"  .= lsiIndexName
+           , "KeySchema"  .= map keyToKeySchema lsiKeySchema
            , "Projection" .= lsiProjection
            ]
 
@@ -408,20 +408,20 @@ instance FromJSON GlobalSecondaryIndexResponse where
 ------------------------------------------------------------------------------
 -- | `GlobalSecondaryIndex` object
 data GlobalSecondaryIndex = GlobalSecondaryIndex {
-    gsiIndexName      :: Text
-  , gsiProjection     :: Projection
+    gsiIndexName             :: Text
+  , gsiProjection            :: Projection
   , gsiProvisionedThroughput :: Throughput
-  , gsiKeySchema      :: [Key]
+  , gsiKeySchema             :: [Key]
   } deriving (Show, Eq)
 
 ------------------------------------------------------------------------------
 -- | `ToJSON` instance for `GlobalSecondaryIndex`
 instance ToJSON GlobalSecondaryIndex where
   toJSON GlobalSecondaryIndex{..} =
-    object [ "IndexName" .= gsiIndexName
-           , "Projection" .= gsiProjection
+    object [ "IndexName"             .= gsiIndexName
+           , "Projection"            .= gsiProjection
            , "ProvisionedThroughput" .= gsiProvisionedThroughput
-           , "KeySchema" .= map keyToKeySchema gsiKeySchema
+           , "KeySchema"             .= map keyToKeySchema gsiKeySchema
            ]
 
 ------------------------------------------------------------------------------
@@ -507,7 +507,7 @@ type HTTPErrorCode = Int
 -- | `DynamoError` object
 data DynamoError =
     ProducerExhausted
-  | ParseError
+  | ParseError String
   | Err String
   | UnknownError String
   | ClientError HTTPErrorCode DynamoErrorDetails -- ^ Any error indicated by a 4xx response

@@ -22,8 +22,11 @@ description:
     [100% Haddock Coverage]
     All code written for this library is documented to completion with the haddock documentation tool
     .
+    [Limitations]
+    Batch operations + Scan currently unsupported. 
+    .
 
-    [Database Operations - <https://stripe.com/docs/api#pagination>]
+    [Database Operations - <http://docs.aws.amazon.com/amazondynamodb/latest/APIReference/Welcome.html>]
     To get started implement the `ToDynamo` typeclass on your types.
     By default the DynamoDB API transmits all data in JSON format. Our types take care of that for you, all that isn needed is to implement the `ToDynamo` typeclass.
     .
@@ -36,8 +39,7 @@ description:
     >
     .
 library
-  exposed-modules:     Web.AWS.DynamoDB
-  other-modules:       Web.AWS.DynamoDB.Helpers
+  exposed-modules:     Web.AWS.DynamoDB.Helpers
                      , Web.AWS.DynamoDB.Abstract
                      , Web.AWS.DynamoDB.Client
                      , Web.AWS.DynamoDB.Query
@@ -61,11 +63,8 @@ library
                      , either
                      , http-types
                      , mtl
-                     , pipes
-                     , pipes-aeson
-                     , pipes-attoparsec
-                     , pipes-bytestring
-                     , pipes-http
+                     , io-streams
+                     , io-streams-http
                      , text
                      , time
                      , transformers
