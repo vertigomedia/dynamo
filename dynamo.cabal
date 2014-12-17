@@ -63,10 +63,12 @@ library
                      , aws-general
                      , base >=4.7 && <4.8
                      , bytestring
+                     , base64-bytestring
                      , http-client >= 0.4.6.1
                      , http-types
                      , io-streams
                      , io-streams-http
+                     , retry
                      , text
                      , time
                      , unordered-containers
