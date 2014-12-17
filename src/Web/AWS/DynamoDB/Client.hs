@@ -60,24 +60,19 @@ import           Web.AWS.DynamoDB.Types         ( DynamoAction       (..)
                                                 )
 
 ------------------------------------------------------------------------------
--- | Development Mode flag, Debug Flag
-dev, debug :: Bool
-dev   = False
-debug = True
-
-------------------------------------------------------------------------------
 -- | Request issuer
 dynamo
-  :: (DynamoAction a, FromJSON b)
-  => a
-  -> DynamoConfig
+  :: (DynamoAction a b)
+  => DynamoConfig
+  -> a
   -> IO (Either DynamoError b)
-dynamo dynamoObject config@DynamoConfig{..} = do
+dynamo config@DynamoConfig{..} dynamoObject = do
   let actionName = toBS (typeOf dynamoObject)
       produrl =  "https://dynamodb." <> regionToText dynamoRegion <> ".amazonaws.com:443"
-      url = bool produrl "http://localhost:8000" dev
+      testurl = "http://localhost:4567"
+      url = bool produrl testurl dynamoIsDev
       rawjson = L.toStrict $ encode dynamoObject
-  when debug $ print rawjson
+  when dynamoDebug $ print rawjson
   req <- parseUrl url
   requestResult <- createRequest dynamoObject config
   case requestResult of
@@ -89,7 +84,8 @@ dynamo dynamoObject config@DynamoConfig{..} = do
         , requestHeaders = heads
         , requestBody = stream bsStr
         }
-        result <- try $ withHTTP req' dynamoManager $ parseFromStream (fromJSON <$> json') . responseBody
+        result <- try $ withHTTP req' dynamoManager $
+                    parseFromStream (fromJSON <$> json') . responseBody
         return $ case result of
          Left e -> 
            case fromException e of
@@ -107,7 +103,7 @@ dynamo dynamoObject config@DynamoConfig{..} = do
          Right (Error str)    -> Left $ ParseError str
   where
     createRequest
-      :: DynamoAction a
+      :: DynamoAction a b
       => a
       -> DynamoConfig
       -> IO (Either String RequestHeaders)
