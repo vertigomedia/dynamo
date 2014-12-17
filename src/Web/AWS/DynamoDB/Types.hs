@@ -1,3 +1,4 @@
+{-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE RecordWildCards   #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE OverloadedStrings #-}
@@ -13,18 +14,55 @@
 ------------------------------------------------------------------------------
 module Web.AWS.DynamoDB.Types where
 
-import           Data.Aeson
-import           Data.HashMap.Strict ( toList )
-import           Control.Monad       ( forM   ) 
-import           Control.Applicative ( pure, (<$>), (<*>), (<|>) )
-import           Control.Monad       ( mzero )
-import           Data.Text           ( Text, unpack, split )
-import           Data.Time
+import Aws.General ( Region(..) )
+import Control.Applicative ( pure, (<$>), (<*>), (<|>) )
+import Control.Monad ( forM   )
+import Control.Monad ( mzero )
+import Control.Monad.Trans.Reader
+import Data.Aeson
+import Data.HashMap.Strict ( toList )
+import Data.Maybe ( fromMaybe )
+import Data.Text ( Text, unpack, split )
+import Data.Time
 import           Prelude    hiding   ( unlines )
+import Text.Printf ( printf  )
 import           Text.Read  hiding   ( String  )
-import           Text.Printf         ( printf  )
-import           Data.Maybe          ( fromMaybe )
-import           Web.AWS.DynamoDB.Helpers
+import Web.AWS.DynamoDB.Helpers
+import Network.HTTP.Client
+import Control.Monad.Trans.Either
+
+------------------------------------------------------------------------------
+-- | Core Dynamo Type
+type Dynamo = forall a . FromJSON a => EitherT DynamoError (ReaderT DynamoConfig IO) a
+
+------------------------------------------------------------------------------
+-- | Execute a dynamo action
+dynamo
+  :: FromJSON a
+  => DynamoConfig
+  -> Dynamo
+  -> IO (Either DynamoError a)
+dynamo config action =  
+  flip runReaderT config $ runEitherT action
+
+------------------------------------------------------------------------------
+-- | Dynamo Config Type, stores Dynamo DB settings and connection manager (pool)
+data DynamoConfig = DynamoConfig {
+        dynamoPublicKey :: PublicKey
+      , dynamoSecretKey :: SecretKey
+      , dynamoManager   :: Manager
+      , dynamoRegion    :: Region
+      } 
+
+------------------------------------------------------------------------------
+-- | AWS Public Key
+newtype PublicKey = PublicKey Text
+    deriving (Show, Eq)
+
+------------------------------------------------------------------------------
+-- | AWS Public Key
+newtype SecretKey = SecretKey Text
+    deriving (Show, Eq)
 
 ------------------------------------------------------------------------------
 -- | DynamoDB Types: 

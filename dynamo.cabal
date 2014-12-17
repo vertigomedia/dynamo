@@ -61,10 +61,11 @@ library
                      , bytestring
                      , case-insensitive
                      , either
+                     , http-client >= 0.4.6.1
                      , http-types
-                     , mtl
                      , io-streams
                      , io-streams-http
+                     , mtl
                      , text
                      , time
                      , transformers
@@ -75,6 +76,9 @@ Test-Suite spec
     type:             exitcode-stdio-1.0
     hs-source-dirs:   spec
     main-is:          Main.hs
-    build-depends:    base, dynamo, hspec
+    build-depends:    base
+                    , dynamo
+                    , hspec
+                    , http-client >= 0.4.6.1
     default-language: Haskell2010
     ghc-options:      -Wall
