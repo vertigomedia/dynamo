@@ -32,3 +32,8 @@ data DeleteTable = DeleteTable {
 instance ToJSON DeleteTable where
   toJSON DeleteTable{..} = object [ "TableName" .= deleteTableName ]
 
+------------------------------------------------------------------------------
+-- | `DynamoAction` instance
+instance DynamoAction DeleteTable
+
+

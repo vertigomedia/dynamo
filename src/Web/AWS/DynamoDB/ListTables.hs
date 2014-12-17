@@ -70,4 +70,9 @@ instance FromJSON ListTablesResponse where
                        <*> o .: "TableNames"
   parseJSON _ = mzero
 
+------------------------------------------------------------------------------
+-- | `DynamoAction` instance
+instance DynamoAction ListTables
+
+
 

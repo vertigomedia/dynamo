@@ -55,6 +55,11 @@ data DynamoConfig = DynamoConfig {
       } 
 
 ------------------------------------------------------------------------------
+-- | A typeclass to constrain what kinds of requests can be made to
+-- the dynamo endpoint
+class ToJSON a => DynamoAction a
+
+------------------------------------------------------------------------------
 -- | AWS Public Key
 newtype PublicKey = PublicKey Text
     deriving (Show, Eq)
@@ -622,3 +627,6 @@ instance FromJSON DynamoErrorType where
          typ    = unpack t
      pure $ fromMaybe UnknownErrorType (readMaybe typ :: Maybe DynamoErrorType)
    parseJSON _ = mzero
+
+
+

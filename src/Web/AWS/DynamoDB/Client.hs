@@ -1,6 +1,3 @@
-{-# LANGUAGE RankNTypes #-}
-{-# LANGUAGE RecordWildCards #-}
-{-# LANGUAGE OverloadedStrings #-}
 ------------------------------------------------------------------------------
 -- | 
 -- Module      : Web.AWS.DynamoDB.Client
@@ -52,7 +49,7 @@ debug = True
 ------------------------------------------------------------------------------
 -- | Request issuer
 callDynamo
-  :: (ToJSON a, FromJSON b, Show b)
+  :: (DynamoAction a, FromJSON b)
   => Operation
   -> a
   -> IO (Either DynamoError b)

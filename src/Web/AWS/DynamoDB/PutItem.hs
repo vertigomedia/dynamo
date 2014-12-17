@@ -58,3 +58,7 @@ instance ToJSON PutItem where
            ,  "TableName" .= putItemTableName
            ,  "ReturnValues" .= putItemReturnValue
            ]
+
+------------------------------------------------------------------------------
+-- | `DynamoAction` instance
+instance DynamoAction PutItem

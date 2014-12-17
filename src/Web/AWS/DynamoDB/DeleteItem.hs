@@ -26,8 +26,8 @@ deleteItem = callDynamo "DeleteItem"
 ------------------------------------------------------------------------------
 -- | Types
 data DeleteItem = DeleteItem {
-    deleteItemKey       :: [Item] 
-  , deleteItemTableName :: Text
+    deleteItemKey         :: [Item] 
+  , deleteItemTableName   :: Text
   , deleteItemReturnValue :: ReturnValue
   } deriving (Show)
 
@@ -36,9 +36,13 @@ data DeleteItem = DeleteItem {
 instance ToJSON DeleteItem where
   toJSON DeleteItem{..} =
     object [
-        "Key" .= let x = map (\(Item k t v) -> k .= object [ toText t .= v ]) deleteItemKey
-                 in object x
-      , "TableName" .= deleteItemTableName                  
+        "Key"          .= let x = map (\(Item k t v) -> k .= object [ toText t .= v ]) deleteItemKey
+                          in object x
+      , "TableName"    .= deleteItemTableName                  
       , "ReturnValues" .= deleteItemReturnValue
       ]
+
+------------------------------------------------------------------------------
+-- | `DynamoAction` instance
+instance DynamoAction DeleteItem
 

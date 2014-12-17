@@ -61,3 +61,7 @@ instance ToJSON UpdateItem where
                 in object x
            , "ReturnValues" .= updateItemReturnValues
            ]
+
+------------------------------------------------------------------------------
+-- | `DynamoAction` instance
+instance DynamoAction UpdateItem

@@ -84,3 +84,7 @@ instance ToJSON Query where
                                        ]) queryKeyConditions
                          in object x
     ]
+
+------------------------------------------------------------------------------
+-- | `DynamoAction` instance
+instance DynamoAction Query

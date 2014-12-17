@@ -39,3 +39,8 @@ instance ToJSON GetItem where
       , "TableName" .= getItemTableName                  
       ]
 
+------------------------------------------------------------------------------
+-- | `DynamoAction` instance
+instance DynamoAction GetItem
+
+

@@ -34,4 +34,6 @@ instance ToJSON UpdateTable where
            , "ProvisionedThroughput" .= updateTableProvisionedThrouhput
            ]
 
-
+------------------------------------------------------------------------------
+-- | `DynamoAction` instance
+instance DynamoAction UpdateTable

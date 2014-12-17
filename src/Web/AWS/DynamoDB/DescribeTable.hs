@@ -30,5 +30,8 @@ data DescribeTable = DescribeTable {
 instance ToJSON DescribeTable where
   toJSON DescribeTable{..} = object [ "TableName" .= describeTableName ]
        
+------------------------------------------------------------------------------
+-- | `DynamoAction` instance
+instance DynamoAction DescribeTable
    
 

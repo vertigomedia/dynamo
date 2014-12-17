@@ -78,10 +78,14 @@ instance ToJSON CreateTable where
                     Just gsi -> map keyToAttribute $ concatMap gsiKeySchema gsi
         defaultNothing x = if x == Just [] then Nothing else x
     in object [
-        "AttributeDefinitions" .= (nub $ attrs ++ lsiattrs ++ gsiattrs)
+        "AttributeDefinitions"   .= (nub $ attrs ++ lsiattrs ++ gsiattrs)
       , "GlobalSecondaryIndexes" .= defaultNothing createTableGlobalSecondaryIndexes
-      , "KeySchema" .= keyschema
-      , "LocalSecondaryIndexes" .= defaultNothing createTableLocalSecondaryIndexes
-      , "ProvisionedThroughput" .= createTableProvisionedThroughput
-      , "TableName" .= createTableName
+      , "KeySchema"              .= keyschema
+      , "LocalSecondaryIndexes"  .= defaultNothing createTableLocalSecondaryIndexes
+      , "ProvisionedThroughput"  .= createTableProvisionedThroughput
+      , "TableName"              .= createTableName
       ]
+
+------------------------------------------------------------------------------
+-- | `DynamoAction` instance
+instance DynamoAction CreateTable
