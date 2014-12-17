@@ -1,10 +1,13 @@
 {-# LANGUAGE OverloadedStrings #-}
+------------------------------------------------------------------------------
 -- |
 -- Module      : Web.AWS.DynamoDB
 -- Copyright   : (c) David Johnson, 2014
 -- Maintainer  : djohnson.m@gmail.com
 -- Stability   : experimental
 -- Portability : POSIX
+--
+------------------------------------------------------------------------------
 module Web.AWS.DynamoDB
        ( ---- * Table
            module Web.AWS.DynamoDB.CreateTable 

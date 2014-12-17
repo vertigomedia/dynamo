@@ -13,12 +13,12 @@
 module Web.AWS.DynamoDB.Client where
 
 import           Control.Exception
-import           Control.Monad      (when)
-import           Data.Text          (pack)
+import           Control.Monad       ( when, (>=>) )
+import           Data.Text           ( pack )
 import           Control.Applicative
 import           Data.Aeson
 
-import           Data.ByteString (ByteString)
+import           Data.ByteString     ( ByteString )
 import qualified Data.ByteString.Lazy as L
 import           Control.Monad.Trans.State.Strict
 import           Data.Monoid
@@ -28,13 +28,15 @@ import           Data.Time
 import           Network.HTTP.Types.Status
 import           Network.HTTP.Types.Header
 import           Aws.SignatureV4
-import           Aws.General hiding (parse)
+import           Aws.General hiding  ( parse )
 
-import           Pipes.HTTP
-import qualified Pipes.ByteString as PB 
+import           System.IO.Streams ( InputStream, OutputStream) 
+import qualified System.IO.Streams as Streams
+import           System.IO.Streams.HTTP
+import           System.IO.Streams.Attoparsec 
+import           System.IO.Streams.ByteString
+
 import           Web.AWS.DynamoDB.Helpers
-import           Pipes.Attoparsec (parse) -- ParsingError(..)
-
 import           Web.AWS.DynamoDB.Types
 
 ------------------------------------------------------------------------------
@@ -56,19 +58,19 @@ callDynamo
   -> IO (Either DynamoError b)
 callDynamo op bs = do
   let url = bool "https://dynamodb.us-east-1.amazonaws.com:443" "http://localhost:8000" dev
-  req <- parseUrl url
-  let rawjson = L.toStrict $ encode bs
+      rawjson = L.toStrict $ encode bs
   when debug $ print rawjson
+  req <- parseUrl url
   Right heads <- createRequest rawjson op
+  bsStr <- Streams.fromLazyByteString (encode bs)
   let req' = req {
        method = "POST"
      , requestHeaders = heads
-     , requestBody = stream $ PB.fromLazy (encode bs)
+     , requestBody = stream bsStr
     }
-  res <- try (withManager tlsManagerSettings $ \m -> 
-           withHTTP req' m $ \resp -> do
-             evalStateT (parse $ fromJSON <$> json') (responseBody resp))
-  case res of
+  result <- try $ withManager tlsManagerSettings $ \m -> 
+           withHTTP req' m $ parseFromStream (fromJSON <$> json') . responseBody
+  return $ case result of
     Left e -> 
       case fromException e of
         Just (StatusCodeException (Status num _) headers _) -> do
@@ -79,25 +81,15 @@ callDynamo op bs = do
                                 Left m -> DynamoErrorDetails ClientParsingError (pack m)
                                 Right k -> k
               case num of
-                code | code >= 400 && code < 500 -> do
-                         return $ Left $ ClientError code errorJson
-                     | code >= 500 -> do
-                         return $ Left $ ServerError code errorJson
-        _ -> return $ Left $ UnknownError (show e)
-    Right resp -> do
-     when debug $ do putStrLn "after"
-                     print resp
-     case resp of
-       Nothing -> return $ Left ParseError
-       Just x ->  
-         case x of
-           Left _ -> return $ Left ParseError
-           Right y -> 
-             case y of
-               Success z -> return $ Right z
-               Error g   -> return $ Left $ Err g
+                code | code >= 400 && code < 500 -> Left $ ClientError code errorJson
+                     | code >= 500 -> Left $ ServerError code errorJson
+    Right (Success resp) -> Right resp
+    Right (Error str)    -> Left $ ParseError str
   where
-    createRequest :: ByteString -> Operation -> IO (Either String RequestHeaders)
+    createRequest
+      :: ByteString
+      -> Operation
+      -> IO (Either String RequestHeaders)
     createRequest payload operation = do
       (public, private) <- getKeys
       creds <- newCredentials public private
