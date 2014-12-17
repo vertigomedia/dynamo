@@ -1,38 +1,28 @@
-{-# LANGUAGE RecordWildCards   #-}
-{-# LANGUAGE OverloadedStrings #-}
--- |
+{-# LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE RecordWildCards    #-}
+{-# LANGUAGE OverloadedStrings  #-}
+------------------------------------------------------------------------------
+-- | 
 -- Module      : Web.AWS.DynamoDB.UpdateItem
 -- Copyright   : (c) David Johnson, 2014
 -- Maintainer  : djohnson.m@gmail.com
 -- Stability   : experimental
 -- Portability : POSIX
+--
+------------------------------------------------------------------------------
 module Web.AWS.DynamoDB.UpdateItem
        ( -- * Update Item
-         updateItem
-       , updateItemDefault
-       , UpdateItem (..)
+         UpdateItem (..)
        ) where
        
 import           Data.Aeson 
 import           Data.Text    (Text)
+import           Data.Typeable  ( Typeable )
 
 import           Web.AWS.DynamoDB.Client
 import           Web.AWS.DynamoDB.Types
-import           Web.AWS.DynamoDB.Helpers
+import           Web.AWS.DynamoDB.Util 
 
-------------------------------------------------------------------------------
--- | Make Request
-updateItem :: (FromJSON a, Show a) => UpdateItem -> IO (Either DynamoError a)
-updateItem = callDynamo "UpdateItem" 
-
-------------------------------------------------------------------------------
--- | Default request method for `UpdateItem`
-updateItemDefault :: (FromJSON a, Show a) => Text -> [Item] -> Text -> [Item] -> IO (Either DynamoError a)
-updateItemDefault name keys exp avals = updateItem $ 
-  UpdateItem name keys exp
-  avals Nothing Nothing
-  Nothing Nothing Nothing
-  
 ------------------------------------------------------------------------------
 -- | Types
 data UpdateItem = UpdateItem {
@@ -45,7 +35,7 @@ data UpdateItem = UpdateItem {
     , updateItemReturnConsumedCapacity      :: Maybe Text
     , updateItemReturnItemCollectionMetrics :: Maybe Text
     , updateItemReturnValues                :: Maybe ReturnValue
-  } 
+  } deriving (Show, Typeable)
 
 ------------------------------------------------------------------------------
 -- | `ToJSON` instances for `UpdateItem` object

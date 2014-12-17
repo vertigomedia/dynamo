@@ -1,25 +1,29 @@
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE RecordWildCards #-}
--- |
+{-# LANGUAGE OverloadedStrings  #-}
+{-# LANGUAGE RecordWildCards    #-}
+{-# LANGUAGE DeriveDataTypeable #-}
+------------------------------------------------------------------------------
+-- | 
 -- Module      : Web.AWS.DynamoDB.Query
 -- Copyright   : (c) David Johnson, 2014
 -- Maintainer  : djohnson.m@gmail.com
 -- Stability   : experimental
 -- Portability : POSIX
-module Web.AWS.DynamoDB.Query where
+-- 
+------------------------------------------------------------------------------
+module Web.AWS.DynamoDB.Query
+    ( -- * Types
+      defaultQuery
+    , Query (..)
+    ) where
 
-import Prelude hiding (Ordering(..))
+import           Prelude hiding ( Ordering(..) )
 import           Data.Aeson
-import           Data.Text    (Text)
+import           Data.Text      ( Text )
+import           Data.Typeable  ( Typeable )
 
 import           Web.AWS.DynamoDB.Client
-import           Web.AWS.DynamoDB.Helpers
+import           Web.AWS.DynamoDB.Util
 import           Web.AWS.DynamoDB.Types
-
-------------------------------------------------------------------------------
--- | Make Request
-query :: (Show a, FromJSON a) => Query -> IO (Either DynamoError a)
-query = callDynamo "Query" 
 
 ------------------------------------------------------------------------------
 -- | Query helper
@@ -45,7 +49,7 @@ data Query = Query {
   , queryReturnedConsumedCapacity  :: Maybe Capacity -- ^ Not Required
   , queryScanIndexForward          :: Maybe Bool     -- ^ Not Required
   , querySelect                    :: Maybe Select   -- ^ Not Required
-  } deriving (Show)
+  } deriving (Show, Typeable)
 
 ------------------------------------------------------------------------------
 -- | `KeyCondition` Type

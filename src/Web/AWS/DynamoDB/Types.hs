@@ -1,4 +1,3 @@
-{-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE RecordWildCards   #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE OverloadedStrings #-}
@@ -10,40 +9,25 @@
 -- Maintainer  : djohnson.m@gmail.com
 -- Stability   : experimental
 -- Portability : POSIX
--- | 
+-- 
 ------------------------------------------------------------------------------
 module Web.AWS.DynamoDB.Types where
 
-import Aws.General ( Region(..) )
+import Aws.General         ( Region (..) )
 import Control.Applicative ( pure, (<$>), (<*>), (<|>) )
-import Control.Monad ( forM   )
-import Control.Monad ( mzero )
-import Control.Monad.Trans.Reader
+import Control.Monad       ( forM  )
+import Control.Monad       ( mzero )
 import Data.Aeson
-import Data.HashMap.Strict ( toList )
-import Data.Maybe ( fromMaybe )
-import Data.Text ( Text, unpack, split )
-import Data.Time
-import           Prelude    hiding   ( unlines )
-import Text.Printf ( printf  )
-import           Text.Read  hiding   ( String  )
-import Web.AWS.DynamoDB.Helpers
-import Network.HTTP.Client
-import Control.Monad.Trans.Either
-
-------------------------------------------------------------------------------
--- | Core Dynamo Type
-type Dynamo = forall a . FromJSON a => EitherT DynamoError (ReaderT DynamoConfig IO) a
-
-------------------------------------------------------------------------------
--- | Execute a dynamo action
-dynamo
-  :: FromJSON a
-  => DynamoConfig
-  -> Dynamo
-  -> IO (Either DynamoError a)
-dynamo config action =  
-  flip runReaderT config $ runEitherT action
+import Data.ByteString     ( ByteString )
+import Data.HashMap.Strict ( toList     )
+import Data.Maybe          ( fromMaybe  )
+import Data.Text           ( Text, unpack, split )
+import Data.Time           ( UTCTime  )
+import Data.Typeable       ( Typeable )
+import Network.HTTP.Client ( Manager  )
+import Text.Printf         ( printf   )
+import Text.Read  hiding   ( String   )
+import Web.AWS.DynamoDB.Util
 
 ------------------------------------------------------------------------------
 -- | Dynamo Config Type, stores Dynamo DB settings and connection manager (pool)
@@ -57,16 +41,16 @@ data DynamoConfig = DynamoConfig {
 ------------------------------------------------------------------------------
 -- | A typeclass to constrain what kinds of requests can be made to
 -- the dynamo endpoint
-class ToJSON a => DynamoAction a
+class (Typeable a, ToJSON a) => DynamoAction a 
 
 ------------------------------------------------------------------------------
 -- | AWS Public Key
-newtype PublicKey = PublicKey Text
+newtype PublicKey = PublicKey ByteString
     deriving (Show, Eq)
 
 ------------------------------------------------------------------------------
 -- | AWS Public Key
-newtype SecretKey = SecretKey Text
+newtype SecretKey = SecretKey ByteString
     deriving (Show, Eq)
 
 ------------------------------------------------------------------------------
@@ -209,13 +193,15 @@ instance ToJSON Throughput where
 ------------------------------------------------------------------------------
 -- | `ThroughputResponse` object
 data ThroughputResponse = ThroughputResponse {
-     readCapacityUnitsResp :: Integer -- ^ Required, Long, The maximum number of strongly consistent reads consumed per second before DynamoDB returns a ThrottlingException
-   , writeCapacityUnitsResp :: Integer -- ^ Required, Long, The maximum number of writes consumed per second before DynamoDB returns a ThrottlingException
-   , lastIncreaseDateTimeResp :: Maybe UTCTime
-   , lastDecreaseDateTimeResp :: Maybe UTCTime
+     readCapacityUnitsResp      :: Integer -- ^ Required, Long, The maximum number of strongly consistent reads consumed per second before DynamoDB returns a ThrottlingException
+   , writeCapacityUnitsResp     :: Integer -- ^ Required, Long, The maximum number of writes consumed per second before DynamoDB returns a ThrottlingException
+   , lastIncreaseDateTimeResp   :: Maybe UTCTime
+   , lastDecreaseDateTimeResp   :: Maybe UTCTime
    , numberOfDecreasesTodayResp :: Maybe Integer
   } deriving Eq
 
+------------------------------------------------------------------------------
+-- | ThroughputResponse type
 instance Show ThroughputResponse where
     show ThroughputResponse{..} =
       printf "Read-Write Capacity: %d - %d" readCapacityUnitsResp writeCapacityUnitsResp
@@ -549,9 +535,8 @@ type HTTPErrorCode = Int
 ------------------------------------------------------------------------------
 -- | `DynamoError` object
 data DynamoError =
-    ProducerExhausted
-  | ParseError String
-  | Err String
+    ParseError String
+  | RequestCreationError String
   | UnknownError String
   | ClientError HTTPErrorCode DynamoErrorDetails -- ^ Any error indicated by a 4xx response
   | ServerError HTTPErrorCode DynamoErrorDetails -- ^ Any error indicated by a 5xx response

@@ -1,33 +1,31 @@
-{-# LANGUAGE RecordWildCards   #-}
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE FlexibleInstances #-}
--- |
+{-# LANGUAGE RecordWildCards    #-}
+{-# LANGUAGE OverloadedStrings  #-}
+{-# LANGUAGE DeriveDataTypeable #-}
+------------------------------------------------------------------------------
+-- | 
 -- Module      : Web.AWS.DynamoDB.GetItem
 -- Copyright   : (c) David Johnson, 2014
 -- Maintainer  : djohnson.m@gmail.com
 -- Stability   : experimental
 -- Portability : POSIX
+-- 
+------------------------------------------------------------------------------
 module Web.AWS.DynamoDB.GetItem where
 
-import           Control.Applicative
 import           Data.Aeson
 import           Data.Text           (Text)
+import           Data.Typeable
 
 import           Web.AWS.DynamoDB.Client
-import           Web.AWS.DynamoDB.Helpers
+import           Web.AWS.DynamoDB.Util
 import           Web.AWS.DynamoDB.Types
-
-------------------------------------------------------------------------------
--- | Make Request
-getItem :: (Show a, FromJSON a) => GetItem -> IO (Either DynamoError a)
-getItem = callDynamo "GetItem" 
 
 ------------------------------------------------------------------------------
 -- | `GetItem` object
 data GetItem = GetItem {
     getItemKey       :: [Item] 
   , getItemTableName :: Text
-  } deriving (Show)
+  } deriving (Show, Typeable)
 
 ------------------------------------------------------------------------------
 -- | `ToJSON` instance for `GetItem`

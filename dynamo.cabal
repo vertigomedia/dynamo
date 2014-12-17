@@ -30,18 +30,21 @@ description:
     To get started implement the `ToDynamo` typeclass on your types.
     By default the DynamoDB API transmits all data in JSON format. Our types take care of that for you, all that isn needed is to implement the `ToDynamo` typeclass.
     .
-    > import Web.AWS.DynamoDB
+    > import Web.AWS.DynamoDB.Client ( dynamo )
+    > import Web.AWS.DynamoDB.Types  ( Region( USEast1 ), DynamoConfig (..), PublicKey (..), SecretKey (..) )
+    > import Network.Http.Client     ( withManager
+    > import Network.Http.Client.Tls ( tlsSettings )
+    > 
     > 
     > main :: IO ()
-    > main = do
-    >   let config = DynamoConfig "public key" "secret key"
-    >   print =<< dynamo config listTablesDefault 
+    > main = 
+    >   withManager tlsSettings $ \mgr -> do
+    >     let config = DynamoConfig (PublicKey "public key") (SecretKey "secret key") mgr USEast1
+    >     print =<< dynamo config allTables
     >
     .
 library
-  exposed-modules:     Web.AWS.DynamoDB.Helpers
-                     , Web.AWS.DynamoDB.Abstract
-                     , Web.AWS.DynamoDB.Client
+  exposed-modules:     Web.AWS.DynamoDB.Client
                      , Web.AWS.DynamoDB.Query
                      , Web.AWS.DynamoDB.Types
                      , Web.AWS.DynamoDB.DeleteItem
@@ -53,22 +56,19 @@ library
                      , Web.AWS.DynamoDB.DescribeTable
                      , Web.AWS.DynamoDB.UpdateTable
                      , Web.AWS.DynamoDB.DeleteTable
+  other-modules:       Web.AWS.DynamoDB.Util
 
   hs-source-dirs:      src
   build-depends:       aeson
                      , aws-general
                      , base >=4.7 && <4.8
                      , bytestring
-                     , case-insensitive
-                     , either
                      , http-client >= 0.4.6.1
                      , http-types
                      , io-streams
                      , io-streams-http
-                     , mtl
                      , text
                      , time
-                     , transformers
                      , unordered-containers
   default-language:    Haskell2010
 

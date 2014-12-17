@@ -1,51 +1,52 @@
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE RecordWildCards #-}
--- |
+{-# LANGUAGE OverloadedStrings  #-}
+{-# LANGUAGE RecordWildCards    #-}
+{-# LANGUAGE DeriveDataTypeable #-}
+------------------------------------------------------------------------------
+-- | 
 -- Module      : Web.AWS.DynamoDB.ListTables
 -- Copyright   : (c) David Johnson, 2014
 -- Maintainer  : djohnson.m@gmail.com
 -- Stability   : experimental
 -- Portability : POSIX
+--
+------------------------------------------------------------------------------
 module Web.AWS.DynamoDB.ListTables
        ( -- * API
-         listTables
-       , listTablesDefault
+         allTables
          -- * Types
        , ListTables         (..)
        , ListTablesResponse (..)
        ) where
 
-import Control.Monad
-import           Control.Applicative     ( (<$>)
-                                         , (<*>) )
-import           Data.Aeson              ( FromJSON (..)
+import               Control.Applicative ( (<$>)
+                                         , (<*>)
+                                         )
+import               Control.Monad       ( mzero )
+import               Data.Aeson          ( FromJSON (..)
                                          , ToJSON   (..)
                                          , Value    (..)
                                          , object
                                          , (.=)
                                          , (.:?)
-                                         , (.:) )
-import           Data.Text               ( Text )
+                                         , (.:)
+                                         )
+import               Data.Text           ( Text )
+import               Data.Typeable       ( Typeable )
 
-import           Web.AWS.DynamoDB.Types
-import           Web.AWS.DynamoDB.Client
-
-------------------------------------------------------------------------------
--- | Make Request
-listTables :: ListTables -> IO (Either DynamoError ListTablesResponse)
-listTables tables = callDynamo "ListTables" tables
+import               Web.AWS.DynamoDB.Types
+import               Web.AWS.DynamoDB.Client
 
 ------------------------------------------------------------------------------
--- | Default Request for `ListTable` method
-listTablesDefault :: IO (Either DynamoError ListTablesResponse)
-listTablesDefault = listTables $ ListTables Nothing Nothing
+-- | Default ListTables value
+allTables :: ListTables
+allTables = ListTables Nothing Nothing
 
 ------------------------------------------------------------------------------
 -- | Request Type
 data ListTables = ListTables {
     exclusiveStartTableName :: Maybe Text
   , listTableRequestLimit   :: Maybe Int
-  } deriving (Show)
+  } deriving (Show, Typeable, Eq)
 
 ------------------------------------------------------------------------------
 -- | `ToJSON` instances for `ListTables` object

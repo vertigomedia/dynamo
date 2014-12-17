@@ -1,3 +1,4 @@
+{-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
 ------------------------------------------------------------------------------
@@ -7,47 +8,21 @@
 -- Maintainer  : djohnson.m@gmail.com
 -- Stability   : experimental
 -- Portability : POSIX
--- | 
+-- 
 ------------------------------------------------------------------------------
 module Web.AWS.DynamoDB.CreateTable
-       ( -- * API
-         createTable
-       , createTableDefault
-         -- * Types
-       , CreateTable (..)
+       ( -- * Types
+         CreateTable (..)
        )
        where
 
 import           Data.Aeson   
-import           Data.Text    ( Text )
-import           Data.List    ( nub  )
+import           Data.Text     ( Text )
+import           Data.List     ( nub  )
+import           Data.Typeable ( Typeable )
 
-import           Web.AWS.DynamoDB.Client ( callDynamo )
+import           Web.AWS.DynamoDB.Client ( dynamo )
 import           Web.AWS.DynamoDB.Types  
-
-------------------------------------------------------------------------------
--- | Make Request
-createTable :: CreateTable -> IO (Either DynamoError TableResponse)
-createTable = callDynamo "CreateTable" 
-
-------------------------------------------------------------------------------
--- | Make Request
-createTableDefault
-  :: Text
-  -> [Key]
-  -> Throughput
-  -> Maybe [LocalSecondaryIndex]
-  -> Maybe [GlobalSecondaryIndex]
-  -> IO (Either DynamoError TableResponse)
-createTableDefault
-  tableName
-  keytype
-  throughput
-  lsi
-  gsi = do
-    let c = CreateTable tableName keytype throughput gsi lsi
-    print c
-    callDynamo "CreateTable" $ CreateTable tableName keytype throughput gsi lsi
 
 ------------------------------------------------------------------------------
 -- | Types
@@ -57,7 +32,7 @@ data CreateTable = CreateTable {
    , createTableProvisionedThroughput  :: Throughput                   -- ^ Required
    , createTableGlobalSecondaryIndexes :: Maybe [GlobalSecondaryIndex] -- ^ Not Required
    , createTableLocalSecondaryIndexes  :: Maybe [LocalSecondaryIndex]  -- ^ Not Required
-   } deriving (Show, Eq)
+   } deriving (Show, Eq, Typeable)
 
 ------------------------------------------------------------------------------
 -- | `CreateTable` helper
@@ -85,7 +60,3 @@ instance ToJSON CreateTable where
       , "ProvisionedThroughput"  .= createTableProvisionedThroughput
       , "TableName"              .= createTableName
       ]
-
-------------------------------------------------------------------------------
--- | `DynamoAction` instance
-instance DynamoAction CreateTable
