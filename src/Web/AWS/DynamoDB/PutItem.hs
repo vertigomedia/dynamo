@@ -1,3 +1,4 @@
+{-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedStrings  #-}
 {-# LANGUAGE RecordWildCards    #-}
 {-# LANGUAGE DeriveDataTypeable #-}
@@ -15,13 +16,14 @@ module Web.AWS.DynamoDB.PutItem
          PutItem (..)
        ) where
 
-import           Data.Aeson
-import           Data.Text    (Text)
-import           Data.Typeable       ( Typeable )
+import Control.Applicative
+import Data.Aeson
+import Data.Text (Text)
+import Data.Typeable ( Typeable )
 
-import           Web.AWS.DynamoDB.Client
-import           Web.AWS.DynamoDB.Types
-import           Web.AWS.DynamoDB.Util
+import Web.AWS.DynamoDB.Client
+import Web.AWS.DynamoDB.Types
+import Web.AWS.DynamoDB.Util
 
 ------------------------------------------------------------------------------
 -- | `PutItem` object
@@ -44,9 +46,18 @@ instance ToJSON PutItem where
     object [  "Item" .= let x = map (\(Item k t v) -> k .= object [ toText t .= v ]) putItems
                         in object x
            ,  "TableName" .= putItemTableName
-           ,  "ReturnValues" .= putItemReturnValue
+           ,  "ReturnValues" .= NONE
            ]
 
 ------------------------------------------------------------------------------
+-- | PutItem Response type
+data PutItemResponse = PutItemResponse deriving (Show, Eq, Typeable)
+
+------------------------------------------------------------------------------
+-- | PutItem Responses are always ignored since ReturnValues is always NONE
+instance FromJSON PutItemResponse where
+   parseJSON (Object _) = pure PutItemResponse
+
+------------------------------------------------------------------------------
 -- | `DynamoAction` instance
-instance DynamoAction PutItem
+instance DynamoAction PutItem PutItemResponse

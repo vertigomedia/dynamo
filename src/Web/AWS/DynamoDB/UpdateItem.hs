@@ -1,6 +1,7 @@
-{-# LANGUAGE DeriveDataTypeable #-}
-{-# LANGUAGE RecordWildCards    #-}
-{-# LANGUAGE OverloadedStrings  #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE DeriveDataTypeable    #-}
+{-# LANGUAGE RecordWildCards       #-}
+{-# LANGUAGE OverloadedStrings     #-}
 ------------------------------------------------------------------------------
 -- | 
 -- Module      : Web.AWS.DynamoDB.UpdateItem
@@ -54,4 +55,4 @@ instance ToJSON UpdateItem where
 
 ------------------------------------------------------------------------------
 -- | `DynamoAction` instance
-instance DynamoAction UpdateItem
+instance DynamoAction UpdateItem ()

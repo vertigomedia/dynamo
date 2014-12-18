@@ -1,6 +1,7 @@
-{-# LANGUAGE RecordWildCards    #-}
-{-# LANGUAGE OverloadedStrings  #-}
-{-# LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE RecordWildCards       #-}
+{-# LANGUAGE OverloadedStrings     #-}
+{-# LANGUAGE DeriveDataTypeable    #-}
 ------------------------------------------------------------------------------
 -- | 
 -- Module      : Web.AWS.DynamoDB.DescribeTable
@@ -35,6 +36,6 @@ instance ToJSON DescribeTable where
        
 ------------------------------------------------------------------------------
 -- | `DynamoAction` instance
-instance DynamoAction DescribeTable
+instance DynamoAction DescribeTable TableResponse
    
 

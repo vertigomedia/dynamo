@@ -1,6 +1,7 @@
-{-# LANGUAGE OverloadedStrings  #-}
-{-# LANGUAGE RecordWildCards    #-}
-{-# LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE OverloadedStrings     #-}
+{-# LANGUAGE RecordWildCards       #-}
+{-# LANGUAGE DeriveDataTypeable    #-}
 ------------------------------------------------------------------------------
 -- | 
 -- Module      : Web.AWS.DynamoDB.ListTables
@@ -73,7 +74,7 @@ instance FromJSON ListTablesResponse where
 
 ------------------------------------------------------------------------------
 -- | `DynamoAction` instance
-instance DynamoAction ListTables
+instance DynamoAction ListTables ListTablesResponse
 
 
 

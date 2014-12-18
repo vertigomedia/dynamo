@@ -1,3 +1,4 @@
+{-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedStrings  #-}
 {-# LANGUAGE RecordWildCards    #-}
 {-# LANGUAGE DeriveDataTypeable #-}
@@ -89,6 +90,13 @@ instance ToJSON Query where
                          in object x
     ]
 
+data QueryResponse = QueryResponse {
+        queryItems :: [String] 
+      }
+
+instance FromJSON QueryResponse where
+   parseJSON (Object o) = undefined
+
 ------------------------------------------------------------------------------
 -- | `DynamoAction` instance
-instance DynamoAction Query
+instance DynamoAction Query QueryResponse

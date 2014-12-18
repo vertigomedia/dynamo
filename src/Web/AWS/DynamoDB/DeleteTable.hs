@@ -1,6 +1,7 @@
-{-# LANGUAGE DeriveDataTypeable #-}
-{-# LANGUAGE OverloadedStrings  #-}
-{-# LANGUAGE RecordWildCards    #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE DeriveDataTypeable    #-}
+{-# LANGUAGE OverloadedStrings     #-}
+{-# LANGUAGE RecordWildCards       #-}
 ------------------------------------------------------------------------------
 -- | 
 -- Module      : Web.AWS.DynamoDB.DeleteTable
@@ -37,6 +38,6 @@ instance ToJSON DeleteTable where
 
 ------------------------------------------------------------------------------
 -- | `DynamoAction` instance
-instance DynamoAction DeleteTable
+instance DynamoAction DeleteTable TableResponse
 
 

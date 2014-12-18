@@ -1,7 +1,8 @@
-{-# LANGUAGE RecordWildCards   #-}
-{-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE ExistentialQuantification #-}
+{-# LANGUAGE FunctionalDependencies #-}
+{-# LANGUAGE MultiParamTypeClasses  #-}
+{-# LANGUAGE RecordWildCards        #-}
+{-# LANGUAGE FlexibleInstances      #-}
+{-# LANGUAGE OverloadedStrings      #-}
 ------------------------------------------------------------------------------
 -- | 
 -- Module      : Web.AWS.DynamoDB.Types
@@ -11,13 +12,44 @@
 -- Portability : POSIX
 -- 
 ------------------------------------------------------------------------------
-module Web.AWS.DynamoDB.Types where
+module Web.AWS.DynamoDB.Types
+    ( -- * Types
+      AttributeDefinition  (..)
+    , DynamoAction         (..)
+    , DynamoConfig         (..)
+    , DynamoError          (..)
+    , DynamoErrorDetails   (..)
+    , DynamoErrorType      (..)
+    , DynamoType           (..)
+    , GlobalSecondaryIndex (..)
+    , Key                  (..)
+    , KeySchema            (..)
+    , KeyType              (..)
+    , LocalSecondaryIndex  (..)
+    , PublicKey            (..)
+    , Region               (..)
+    , SecretKey            (..)
+    , Throughput           (..)
+    , TableResponse        (..)
+    , Capacity             (..)
+    , Select               (..)
+    , Item                 (..)
+    , ReturnValue          (..)
+    , ComparisonOperator   (..)
+    , Name
+      -- * Helper functions                           
+    , keyToAttribute 
+    , keyToKeySchema
+      -- * BackOff Settings
+    , module Control.Retry
+    ) where
 
 import Aws.General         ( Region (..) )
 import Control.Applicative ( pure, (<$>), (<*>), (<|>) )
-import Control.Monad       ( forM  )
-import Control.Monad       ( mzero )
+import Control.Monad       ( forM, mzero )
+import Control.Retry       ( RetryPolicy )
 import Data.Aeson
+import Data.Aeson.Types    ( typeMismatch )
 import Data.ByteString     ( ByteString )
 import Data.HashMap.Strict ( toList     )
 import Data.Maybe          ( fromMaybe  )
@@ -27,6 +59,7 @@ import Data.Typeable       ( Typeable )
 import Network.HTTP.Client ( Manager  )
 import Text.Printf         ( printf   )
 import Text.Read  hiding   ( String   )
+
 import Web.AWS.DynamoDB.Util
 
 ------------------------------------------------------------------------------
@@ -35,13 +68,33 @@ data DynamoConfig = DynamoConfig {
         dynamoPublicKey :: PublicKey
       , dynamoSecretKey :: SecretKey
       , dynamoManager   :: Manager
+      , dynamoBackOff   :: RetryPolicy
       , dynamoRegion    :: Region
+      , dynamoIsDev     :: Bool -- * Default port for dynalite is 4567
+      , dynamoDebug     :: Bool -- * Will print json response and http info
       } 
+
+------------------------------------------------------------------------------
+-- | Show instance for DynamoConfig
+instance Show DynamoConfig where
+    show (DynamoConfig pk sk _ _ reg dev debug) =
+        "== Dynamo Config ==\n" ++
+        concat [ " "
+               , show pk
+               , "\n "
+               , show sk
+               , "\n "
+               , show reg
+               , " debug: "
+               , show dev
+               , "\n dev: "
+               , show debug
+               ]
 
 ------------------------------------------------------------------------------
 -- | A typeclass to constrain what kinds of requests can be made to
 -- the dynamo endpoint
-class (Typeable a, ToJSON a) => DynamoAction a 
+class (Typeable a, ToJSON a, FromJSON b) => DynamoAction a b | a -> b
 
 ------------------------------------------------------------------------------
 -- | AWS Public Key
@@ -77,17 +130,17 @@ instance ToJSON DynamoType where
 ------------------------------------------------------------------------------
 -- | `FromJSON` instance for `DynamoType`
 instance FromJSON DynamoType where
-   parseJSON (String "S") = pure S
-   parseJSON (String "N") = pure N
-   parseJSON (String "B") = pure B
+   parseJSON (String "S")    = pure S
+   parseJSON (String "N")    = pure N
+   parseJSON (String "B")    = pure B
    parseJSON (String "BOOL") = pure BOOL
    parseJSON (String "NULL") = pure NULL
-   parseJSON (String "SS") = pure SS
-   parseJSON (String "NS") = pure NS
-   parseJSON (String "BS") = pure BS
-   parseJSON (String "L") = pure L
-   parseJSON (String "M") = pure M
-   parseJSON _ = mzero
+   parseJSON (String "SS")   = pure SS
+   parseJSON (String "NS")   = pure NS
+   parseJSON (String "BS")   = pure BS
+   parseJSON (String "L")    = pure L
+   parseJSON (String "M")    = pure M
+   parseJSON val = typeMismatch "incorrect type for DynamoType" val
 
 ------------------------------------------------------------------------------
 -- | Attribute Defintions
@@ -305,7 +358,6 @@ instance FromJSON [Item] where
                           Success x -> x
                return $ Item k dt val
    parseJSON _ = mzero
-
 
 ------------------------------------------------------------------------------
 -- | Capacity `Item`

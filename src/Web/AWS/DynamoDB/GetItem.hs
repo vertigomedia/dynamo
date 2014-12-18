@@ -1,3 +1,5 @@
+{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE RecordWildCards    #-}
 {-# LANGUAGE OverloadedStrings  #-}
 {-# LANGUAGE DeriveDataTypeable #-}
@@ -39,6 +41,6 @@ instance ToJSON GetItem where
 
 ------------------------------------------------------------------------------
 -- | `DynamoAction` instance
-instance DynamoAction GetItem
+instance DynamoAction GetItem ()
 
 

@@ -1,6 +1,7 @@
-{-# LANGUAGE RecordWildCards    #-}
-{-# LANGUAGE DeriveDataTypeable #-}
-{-# LANGUAGE OverloadedStrings  #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE RecordWildCards       #-}
+{-# LANGUAGE DeriveDataTypeable    #-}
+{-# LANGUAGE OverloadedStrings     #-}
 ------------------------------------------------------------------------------
 -- | 
 -- Module      : Web.AWS.DynamoDB.DeleteItem
@@ -28,7 +29,7 @@ import           Web.AWS.DynamoDB.Util   ( toText )
 data DeleteItem = DeleteItem {
     deleteItemKey         :: [Item] 
   , deleteItemTableName   :: Text
-  , deleteItemReturnValue :: ReturnValue
+--, deleteItemReturnValue :: ReturnValue -- will default to NONE
   } deriving (Show, Typeable)
 
 ------------------------------------------------------------------------------
@@ -39,10 +40,10 @@ instance ToJSON DeleteItem where
         "Key"          .= let x = map (\(Item k t v) -> k .= object [ toText t .= v ]) deleteItemKey
                           in object x
       , "TableName"    .= deleteItemTableName                  
-      , "ReturnValues" .= deleteItemReturnValue
+--    , "ReturnValues" .= deleteItemReturnValue 
       ]
 
 ------------------------------------------------------------------------------
 -- | `DynamoAction` instance
-instance DynamoAction DeleteItem
+instance DynamoAction DeleteItem ()
 

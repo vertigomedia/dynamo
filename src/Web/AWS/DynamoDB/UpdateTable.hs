@@ -1,6 +1,7 @@
-{-# LANGUAGE RecordWildCards    #-}
-{-# LANGUAGE OverloadedStrings  #-}
-{-# LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE RecordWildCards       #-}
+{-# LANGUAGE OverloadedStrings     #-}
+{-# LANGUAGE DeriveDataTypeable    #-}
 ------------------------------------------------------------------------------
 -- | 
 -- Module      : Web.AWS.DynamoDB.UpdateTable
@@ -39,4 +40,4 @@ instance ToJSON UpdateTable where
 
 ------------------------------------------------------------------------------
 -- | `DynamoAction` instance
-instance DynamoAction UpdateTable
+instance DynamoAction UpdateTable TableResponse
