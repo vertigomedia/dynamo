@@ -664,6 +664,3 @@ instance FromJSON DynamoErrorType where
          typ    = unpack t
      pure $ fromMaybe UnknownErrorType (readMaybe typ :: Maybe DynamoErrorType)
    parseJSON _ = mzero
-
-
-

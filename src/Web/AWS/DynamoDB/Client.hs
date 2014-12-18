@@ -9,11 +9,12 @@
 -- Portability : POSIX
 --  
 ------------------------------------------------------------------------------
-module Web.AWS.DynamoDB.Client ( dynamo ) where
+module Web.AWS.DynamoDB.Client ( dynamo, defaultDynamoBackoffPolicy ) where
 
 import           Control.Applicative            ( (<$>) )
 import           Control.Exception              ( try, fromException )
 import           Control.Monad                  ( when )
+import           Control.Retry
 import           Data.Text                      ( pack )
 import           Data.Typeable                  ( typeOf )
 import           Data.Aeson                     ( FromJSON
@@ -27,7 +28,7 @@ import qualified Data.ByteString.Lazy as L
 import           Data.Monoid                    ( (<>) )
 import           Data.Bool                      ( bool )
 import           Data.Time                      ( getCurrentTime )
-                                                
+import           Network.HTTP.Client            ( Request (..) )
 import           Network.HTTP.Types.Status      ( Status(..) )
 import           Network.HTTP.Types.Header      ( RequestHeaders )
 import           Aws.SignatureV4                ( newCredentials
@@ -45,7 +46,7 @@ import           System.IO.Streams.HTTP         ( parseUrl
                                                 , stream
                                                 , withHTTP
                                                 , responseBody
-                                                , HttpException      ( StatusCodeException )
+                                                , HttpException ( StatusCodeException )
                                                 )
 import           System.IO.Streams.Attoparsec   ( parseFromStream )
                                                 
@@ -60,6 +61,11 @@ import           Web.AWS.DynamoDB.Types         ( DynamoAction       (..)
                                                 )
 
 ------------------------------------------------------------------------------
+-- | Default backoff policy, 5 tries, exponential at 500
+defaultDynamoBackoffPolicy :: RetryPolicy
+defaultDynamoBackoffPolicy = limitRetries 5 <> exponentialBackoff 500
+
+------------------------------------------------------------------------------
 -- | Request issuer
 dynamo
   :: (DynamoAction a b)
@@ -67,10 +73,9 @@ dynamo
   -> a
   -> IO (Either DynamoError b)
 dynamo config@DynamoConfig{..} dynamoObject = do
-  let actionName = toBS (typeOf dynamoObject)
-      produrl =  "https://dynamodb." <> regionToText dynamoRegion <> ".amazonaws.com:443"
+  let produrl = "https://dynamodb." <> regionToText dynamoRegion <> ".amazonaws.com:443"
       testurl = "http://localhost:4567"
-      url = bool produrl testurl dynamoIsDev
+      url     = bool produrl testurl dynamoIsDev
       rawjson = L.toStrict $ encode dynamoObject
   when dynamoDebug $ print rawjson
   req <- parseUrl url
@@ -84,6 +89,17 @@ dynamo config@DynamoConfig{..} dynamoObject = do
         , requestHeaders = heads
         , requestBody = stream bsStr
         }
+        retryDynamo (issueDynamo config dynamoObject req') dynamoBackOff
+
+------------------------------------------------------------------------------
+-- | Action to retry in case request throughput throttling occurs
+issueDynamo
+  :: (DynamoAction a b)
+  => DynamoConfig
+  -> a
+  -> Request
+  -> IO (Either DynamoError b)
+issueDynamo config@DynamoConfig{..} dynamoObject req' = do
         result <- try $ withHTTP req' dynamoManager $
                     parseFromStream (fromJSON <$> json') . responseBody
         return $ case result of
@@ -101,13 +117,31 @@ dynamo config@DynamoConfig{..} dynamoObject = do
                       | code >= 500 -> Left $ ServerError code errorJson
          Right (Success resp) -> Right resp
          Right (Error str)    -> Left $ ParseError str
+
+------------------------------------------------------------------------------
+-- | Function to issue an http request to Dynamo over a specific
+-- endpoint with a RetryPolicy that will kick in if the Provisioned
+-- throughput for the table has exceeded. 
+retryDynamo
+  :: IO (Either DynamoError t)
+  -> RetryPolicy
+  -> IO (Either DynamoError t)
+retryDynamo action policy =
+    retrying policy predicate action
   where
-    createRequest
-      :: DynamoAction a b
-      => a
-      -> DynamoConfig
-      -> IO (Either String RequestHeaders)
-    createRequest dynamoObject DynamoConfig{..} = do
+    predicate _ result = do
+      return $ case result of
+        (Left (ClientError 400 (DynamoErrorDetails ProvisionedThroughputExceededException _))) -> True
+        otherwise -> False
+
+------------------------------------------------------------------------------
+-- | Generate AWS Headers
+createRequest
+  :: DynamoAction a b
+  => a
+  -> DynamoConfig
+  -> IO (Either String RequestHeaders)
+createRequest dynamoObject DynamoConfig{..} = do
       let PublicKey public = dynamoPublicKey
           SecretKey secret = dynamoSecretKey
           actionName       = toBS $ typeOf dynamoObject
