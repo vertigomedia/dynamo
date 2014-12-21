@@ -27,7 +27,7 @@ import           Web.AWS.DynamoDB.Types
 -- | Update Provisioned Throughput on Table
 data UpdateTable = UpdateTable {
      updateTableName                 :: Text
-   , updateTableProvisionedThrouhput :: Throughput 
+   , updateTableProvisionedThroughput :: Throughput 
   } deriving (Show, Typeable)
 
 ------------------------------------------------------------------------------
@@ -35,7 +35,7 @@ data UpdateTable = UpdateTable {
 instance ToJSON UpdateTable where
   toJSON UpdateTable{..} =
     object [ "TableName" .= updateTableName
-           , "ProvisionedThroughput" .= updateTableProvisionedThrouhput
+           , "ProvisionedThroughput" .= updateTableProvisionedThroughput
            ]
 
 ------------------------------------------------------------------------------

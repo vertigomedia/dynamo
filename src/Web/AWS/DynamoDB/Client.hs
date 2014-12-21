@@ -129,7 +129,7 @@ retryDynamo
 retryDynamo action policy =
     retrying policy predicate action
   where
-    predicate _ result = do
+    predicate _ result = 
       return $ case result of
         (Left (ClientError 400 (DynamoErrorDetails ProvisionedThroughputExceededException _))) -> True
         otherwise -> False

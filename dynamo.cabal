@@ -56,20 +56,24 @@ library
                      , Web.AWS.DynamoDB.DescribeTable
                      , Web.AWS.DynamoDB.UpdateTable
                      , Web.AWS.DynamoDB.DeleteTable
+                     , Web.AWS.DynamoDB.QQ
   other-modules:       Web.AWS.DynamoDB.Util
 
   hs-source-dirs:      src
   build-depends:       aeson
                      , aws-general
                      , base >=4.7 && <4.8
-                     , bytestring
                      , base64-bytestring
+                     , bytestring
+                     , containers  >= 0.5.5.1
                      , http-client >= 0.4.6.1
                      , http-types
                      , io-streams
                      , io-streams-http
                      , retry
+                     , scientific >= 0.3.3.3
                      , text
+                     , template-haskell
                      , time
                      , unordered-containers
   default-language:    Haskell2010
@@ -79,8 +83,10 @@ Test-Suite spec
     hs-source-dirs:   spec
     main-is:          Main.hs
     build-depends:    base
+                    , containers >= 0.5.5.1
                     , dynamo
                     , hspec
                     , http-client >= 0.4.6.1
+                    , scientific >= 0.3.3.3
     default-language: Haskell2010
     ghc-options:      -Wall

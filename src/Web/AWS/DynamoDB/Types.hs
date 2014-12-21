@@ -1,3 +1,4 @@
+{-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE MultiParamTypeClasses  #-}
 {-# LANGUAGE RecordWildCards        #-}
@@ -49,6 +50,8 @@ import Control.Applicative ( pure, (<$>), (<*>), (<|>) )
 import Control.Monad       ( forM, mzero )
 import Control.Retry       ( RetryPolicy )
 import Data.Aeson
+import qualified Data.Set as S
+import Data.Scientific
 import Data.Aeson.Types    ( typeMismatch )
 import Data.ByteString     ( ByteString )
 import Data.HashMap.Strict ( toList     )
@@ -340,7 +343,25 @@ newtype TableName = TableName { unTable :: Text }
 ------------------------------------------------------------------------------
 -- | DynamoDB `Item`
 data Item = Item Name DynamoType Value
-            deriving (Show)
+        deriving (Show)
+
+------------------------------------------------------------------------------
+-- | Core Dyanmo Type
+-- Value types natively recognized by DynamoDb. We pretty much
+-- exactly reflect the AWS API onto Haskell types.
+data DynamoValue
+    = DynamoNumber Scientific
+    | DynamoString Text
+    | DynamoBinary ByteString
+    -- ^ Binary data will automatically be
+    -- base64 marshalled.
+    | DynamoNumberSet (S.Set Scientific)
+    | DynamoStringSet (S.Set Text)
+    | DynamoBinarySet (S.Set ByteString)
+      -- ^ Binary data will
+      -- automatically be base64
+      -- marshalled.
+      deriving (Eq,Show,Read,Ord,Typeable)
 
 ------------------------------------------------------------------------------
 -- | `FromJSON` [Item] instance
@@ -348,7 +369,7 @@ instance FromJSON [Item] where
    parseJSON (Object o) = do
       case toList o of
          [] -> return []
-         _ -> do
+         _  -> do
            items <- (o .: "Item" <|> o .: "Attributes")
            let xs = toList items
            forM xs $ \(k, Object v) -> do
