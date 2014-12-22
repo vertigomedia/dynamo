@@ -122,6 +122,7 @@ issueDynamo config@DynamoConfig{..} dynamoObject req' = do
 -- | Function to issue an http request to Dynamo over a specific
 -- endpoint with a RetryPolicy that will kick in if the Provisioned
 -- throughput for the table has exceeded. 
+-- <http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/ErrorHandling.html#APIRetries>
 retryDynamo
   :: IO (Either DynamoError t)
   -> RetryPolicy
@@ -132,6 +133,12 @@ retryDynamo action policy =
     predicate _ result = 
       return $ case result of
         (Left (ClientError 400 (DynamoErrorDetails ProvisionedThroughputExceededException _))) -> True
+        (Left (ClientError 400 (DynamoErrorDetails LimitExceededException _))) -> True
+        (Left (ClientError 400 (DynamoErrorDetails ResourceInUseException _))) -> True
+        (Left (ClientError 400 (DynamoErrorDetails ThrottlingException _))) -> True
+        (Left (ServerError 500 (DynamoErrorDetails InternalFailure _))) -> True
+        (Left (ServerError 500 (DynamoErrorDetails InternalServerError _))) -> True
+        (Left (ServerError 503 (DynamoErrorDetails ServiceUnavailableException _))) -> True
         otherwise -> False
 
 ------------------------------------------------------------------------------
