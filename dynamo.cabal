@@ -61,19 +61,23 @@ library
 
   hs-source-dirs:      src
   build-depends:       aeson
+                     , attoparsec
                      , aws-general
-                     , base >=4.7 && <4.8
+                     , base        >=4.7 && <4.8
                      , base64-bytestring
                      , bytestring
+                     , cereal
                      , containers  >= 0.5.5.1
+                     , hspec       >= 2.1.2
                      , http-client >= 0.4.6.1
+                     , http-client-tls >= 0.2.2
                      , http-types
                      , io-streams
                      , io-streams-http
                      , retry
-                     , scientific >= 0.3.3.3
-                     , text
+                     , scientific  >= 0.3.3.3
                      , template-haskell
+                     , text
                      , time
                      , unordered-containers
   default-language:    Haskell2010
@@ -86,7 +90,9 @@ Test-Suite spec
                     , containers >= 0.5.5.1
                     , dynamo
                     , hspec
+                    , hspec >= 2.1.2
                     , http-client >= 0.4.6.1
+                    , http-client-tls >= 0.2.2
                     , scientific >= 0.3.3.3
     default-language: Haskell2010
     ghc-options:      -Wall

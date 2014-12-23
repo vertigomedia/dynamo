@@ -28,6 +28,8 @@ import qualified Data.ByteString.Lazy as L
 import           Data.Monoid                    ( (<>) )
 import           Data.Bool                      ( bool )
 import           Data.Time                      ( getCurrentTime )
+import qualified Data.Text as T
+import           Data.Text                      ( Text )
 import           Network.HTTP.Client            ( Request (..) )
 import           Network.HTTP.Types.Status      ( Status(..) )
 import           Network.HTTP.Types.Header      ( RequestHeaders )
@@ -59,6 +61,7 @@ import           Web.AWS.DynamoDB.Types         ( DynamoAction       (..)
                                                 , PublicKey          (..)
                                                 , SecretKey          (..)
                                                 )
+import           Debug.Trace
 
 ------------------------------------------------------------------------------
 -- | Default backoff policy, 5 tries, exponential at 500
@@ -68,7 +71,8 @@ defaultDynamoBackoffPolicy = limitRetries 5 <> exponentialBackoff 500
 ------------------------------------------------------------------------------
 -- | Request issuer
 dynamo
-  :: (DynamoAction a b)
+  :: Show b
+  => (DynamoAction a b)
   => DynamoConfig
   -> a
   -> IO (Either DynamoError b)
@@ -78,45 +82,51 @@ dynamo config@DynamoConfig{..} dynamoObject = do
       url     = bool produrl testurl dynamoIsDev
       rawjson = L.toStrict $ encode dynamoObject
   when dynamoDebug $ print rawjson
-  req <- parseUrl url
   requestResult <- createRequest dynamoObject config
   case requestResult of
     Left err -> return . Left $ RequestCreationError err 
-    Right heads ->
-     do bsStr <- Streams.fromLazyByteString (encode dynamoObject)
-        let req' = req {
-          method = "POST"
-        , requestHeaders = heads
-        , requestBody = stream bsStr
-        }
-        retryDynamo (issueDynamo config dynamoObject req') dynamoBackOff
+    Right heads -> retryDynamo (issueDynamo config dynamoObject url heads) dynamoBackOff
 
 ------------------------------------------------------------------------------
 -- | Action to retry in case request throughput throttling occurs
-issueDynamo
-  :: (DynamoAction a b)
-  => DynamoConfig
-  -> a
-  -> Request
-  -> IO (Either DynamoError b)
-issueDynamo config@DynamoConfig{..} dynamoObject req' = do
-        result <- try $ withHTTP req' dynamoManager $
-                    parseFromStream (fromJSON <$> json') . responseBody
-        return $ case result of
+-- issueDynamo
+--   :: (DynamoAction a b)
+--   => DynamoConfig
+--   -> Text
+--   -> a
+--   -> IO (Either DynamoError b)
+-- issueDynamo ::
+--   (FromJSON b, ToJSON a) =>
+--   DynamoConfig
+--   -> a -> String -> RequestHeaders -> IO (Either DynamoError b)
+issueDynamo config@DynamoConfig{..} dynamoObject url heads  = do
+        req <- parseUrl url
+        bsStr <- Streams.fromLazyByteString (encode dynamoObject)
+        let req' = req {
+            method = "POST"
+          , requestHeaders = heads
+          , requestBody = stream bsStr
+        }
+        result <- try $ withHTTP req' dynamoManager $ \resp -> do
+                    r <- parseFromStream json' (responseBody resp)
+                    return $ fromJSON r
+        case result of
          Left e -> 
            case fromException e of
              Just (StatusCodeException (Status num _) headers _) -> do
+               print $ lookup "X-Response-Body-Start" headers 
                let res = lookup "X-Response-Body-Start" headers 
                    errorJson = case res of 
-                     Nothing -> DynamoErrorDetails ClientParsingError "no json body"
-                     Just x -> case eitherDecodeStrict x of
-                                 Left m -> DynamoErrorDetails ClientParsingError (pack m)
-                                 Right k -> k
-               case num of
+                     Nothing -> DynamoErrorDetails ClientParsingError $ Just "no json body"
+                     Just x  -> 
+                       case eitherDecodeStrict x of
+                         Left m  -> DynamoErrorDetails ClientParsingError $ Just (pack m)
+                         Right k -> k
+               return $ case num of
                  code | code >= 400 && code < 500 -> Left $ ClientError code errorJson
                       | code >= 500 -> Left $ ServerError code errorJson
-         Right (Success resp) -> Right resp
-         Right (Error str)    -> Left $ ParseError str
+         Right (Success resp) -> return $ Right resp
+         Right (Error str)    -> return $ Left $ ParseError str
 
 ------------------------------------------------------------------------------
 -- | Function to issue an http request to Dynamo over a specific
@@ -124,13 +134,14 @@ issueDynamo config@DynamoConfig{..} dynamoObject req' = do
 -- throughput for the table has exceeded. 
 -- <http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/ErrorHandling.html#APIRetries>
 retryDynamo
-  :: IO (Either DynamoError t)
+  :: Show t
+  => IO (Either DynamoError t)
   -> RetryPolicy
   -> IO (Either DynamoError t)
 retryDynamo action policy =
     retrying policy predicate action
   where
-    predicate _ result = 
+    predicate _ result = do
       return $ case result of
         (Left (ClientError 400 (DynamoErrorDetails ProvisionedThroughputExceededException _))) -> True
         (Left (ClientError 400 (DynamoErrorDetails LimitExceededException _))) -> True

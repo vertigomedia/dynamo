@@ -16,6 +16,7 @@ module Web.AWS.DynamoDB.DeleteItem
       DeleteItem (..)
     ) where
 
+import           Control.Applicative (pure)
 import           Data.Aeson
 import           Data.Text    (Text)
 import           Data.Typeable
@@ -27,7 +28,7 @@ import           Web.AWS.DynamoDB.Util   ( toText )
 ------------------------------------------------------------------------------
 -- | Types
 data DeleteItem = DeleteItem {
-    deleteItemKey         :: [Item] 
+    deleteItemKey         :: PrimaryKey
   , deleteItemTableName   :: Text
 --, deleteItemReturnValue :: ReturnValue -- will default to NONE
   } deriving (Show, Typeable)
@@ -37,13 +38,22 @@ data DeleteItem = DeleteItem {
 instance ToJSON DeleteItem where
   toJSON DeleteItem{..} =
     object [
-        "Key"          .= let x = map (\(Item k t v) -> k .= object [ toText t .= v ]) deleteItemKey
-                          in object x
+        "Key"          .= deleteItemKey
       , "TableName"    .= deleteItemTableName                  
---    , "ReturnValues" .= deleteItemReturnValue 
       ]
 
 ------------------------------------------------------------------------------
+-- | Delete item response
+data DeleteItemResponse = DeleteItemResponse {
+        
+      } deriving (Show)
+
+------------------------------------------------------------------------------
+-- | ToJSON Delete Item Response
+instance FromJSON DeleteItemResponse where
+   parseJSON (Object o) = pure DeleteItemResponse
+
+------------------------------------------------------------------------------
 -- | `DynamoAction` instance
-instance DynamoAction DeleteItem ()
+instance DynamoAction DeleteItem DeleteItemResponse
 

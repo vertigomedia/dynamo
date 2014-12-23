@@ -1,4 +1,4 @@
-{-# LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE DeriveDataTypeable     #-}
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE MultiParamTypeClasses  #-}
 {-# LANGUAGE RecordWildCards        #-}
@@ -34,36 +34,44 @@ module Web.AWS.DynamoDB.Types
     , TableResponse        (..)
     , Capacity             (..)
     , Select               (..)
-    , Item                 (..)
     , ReturnValue          (..)
     , ComparisonOperator   (..)
+    , PrimaryKey           (..)
     , Name
       -- * Helper functions                           
     , keyToAttribute 
     , keyToKeySchema
       -- * BackOff Settings
     , module Control.Retry
+    , module Network.HTTP.Client
+    , module Network.HTTP.Client.TLS
+    , module Web.AWS.DynamoDB.Abstract
     ) where
 
 import Aws.General         ( Region (..) )
 import Control.Applicative ( pure, (<$>), (<*>), (<|>) )
-import Control.Monad       ( forM, mzero )
+import Control.Monad       ( forM, mzero, liftM )
 import Control.Retry       ( RetryPolicy )
 import Data.Aeson
-import qualified Data.Set as S
-import Data.Scientific
 import Data.Aeson.Types    ( typeMismatch )
 import Data.ByteString     ( ByteString )
-import Data.HashMap.Strict ( toList     )
 import Data.Maybe          ( fromMaybe  )
 import Data.Text           ( Text, unpack, split )
 import Data.Time           ( UTCTime  )
 import Data.Typeable       ( Typeable )
-import Network.HTTP.Client ( Manager  )
-import Text.Printf         ( printf   )
-import Text.Read  hiding   ( String   )
+import Data.Scientific
+import qualified Data.Set as S
+import qualified Data.Text as T
+import qualified Data.Text.Encoding as T
+import qualified Data.Map as M
+import Data.HashMap.Strict ( toList  )
+import Network.HTTP.Client 
+import Network.HTTP.Client.TLS 
+import Text.Printf         ( printf  )
+import Text.Read  hiding   ( String, Number )
 
 import Web.AWS.DynamoDB.Util
+import Web.AWS.DynamoDB.Abstract
 
 ------------------------------------------------------------------------------
 -- | Dynamo Config Type, stores Dynamo DB settings and connection manager (pool)
@@ -341,46 +349,6 @@ newtype TableName = TableName { unTable :: Text }
    deriving (Show, Eq)
 
 ------------------------------------------------------------------------------
--- | DynamoDB `Item`
-data Item = Item Name DynamoType Value
-        deriving (Show)
-
-------------------------------------------------------------------------------
--- | Core Dyanmo Type
--- Value types natively recognized by DynamoDb. We pretty much
--- exactly reflect the AWS API onto Haskell types.
-data DynamoValue
-    = DynamoNumber Scientific
-    | DynamoString Text
-    | DynamoBinary ByteString
-    -- ^ Binary data will automatically be
-    -- base64 marshalled.
-    | DynamoNumberSet (S.Set Scientific)
-    | DynamoStringSet (S.Set Text)
-    | DynamoBinarySet (S.Set ByteString)
-      -- ^ Binary data will
-      -- automatically be base64
-      -- marshalled.
-      deriving (Eq,Show,Read,Ord,Typeable)
-
-------------------------------------------------------------------------------
--- | `FromJSON` [Item] instance
-instance FromJSON [Item] where
-   parseJSON (Object o) = do
-      case toList o of
-         [] -> return []
-         _  -> do
-           items <- (o .: "Item" <|> o .: "Attributes")
-           let xs = toList items
-           forM xs $ \(k, Object v) -> do
-               let [(t,val)] = toList v
-                   dt = case fromJSON (String t) of
-                          Error _ -> error "couldn't parse into DynamoType"
-                          Success x -> x
-               return $ Item k dt val
-   parseJSON _ = mzero
-
-------------------------------------------------------------------------------
 -- | Capacity `Item`
 data Capacity =
     INDEXES
@@ -432,15 +400,24 @@ instance ToJSON ComparisonOperator where
 type KeyName = Text
 
 ------------------------------------------------------------------------------
--- | Type def for Keys as Items
-type KeyItem = Item
+-- | `PrimaryKeyType` object
+data PrimaryKey = PrimaryKey {
+        hashKey :: (Text, DValue)
+      , rangeKey :: Maybe (Text, DValue)
+     } deriving (Show, Eq)
 
 ------------------------------------------------------------------------------
--- | `PrimaryKeyType` object
-data PrimaryKeyType =
-    HashAndRangeType { hashKey :: Key, rangeKey :: Key }
-  | HashType         { hashKey :: Key }
-  deriving (Show, Eq)
+-- | ToJSON Primary Key
+instance ToJSON PrimaryKey where
+  toJSON PrimaryKey{..} =
+      let (k,v) = hashKey
+      in case rangeKey of
+           Just (k2,v2) ->
+               object [
+                 (k, toJSON v)
+               , (k2, toJSON v2)
+               ]
+           Nothing-> object [ (k, toJSON v) ]
 
 ------------------------------------------------------------------------------
 -- | Local Secondary Index Request Type
@@ -619,7 +596,7 @@ data DynamoError =
 -- | `DynamoErrorDetails` object
 data DynamoErrorDetails = DynamoErrorDetails {
      dynamoErrorType    :: DynamoErrorType
-   , dynamoErrorMessage :: Text
+   , dynamoErrorMessage :: Maybe Text
   } deriving (Show)
 
 ------------------------------------------------------------------------------
@@ -628,7 +605,7 @@ instance FromJSON DynamoErrorDetails where
    parseJSON (Object o) =
      DynamoErrorDetails <$> o .: "__type"
                              -- Amazon's json is very inconsistent to say the least
-                        <*> (o .: "message" <|> o .: "Message")
+                        <*> (o .:? "message" <|> o .:? "Message")
    parseJSON _ = mzero
 
 ------------------------------------------------------------------------------
@@ -673,6 +650,7 @@ data DynamoErrorType =
                         -- The error message contains details about the specific part of the request that caused the error.
   | InternalServerError -- ^ The server encountered an internal error trying to fulfill the request.
   | ServiceUnavailableException -- ^ The server encountered an internal error trying to fulfill the request.
+  | SerializationException
   | ClientParsingError -- ^ Client couldn't parse the error json
   | UnknownErrorType            -- ^ Customer unknown error type (not AWS specific)
    deriving (Show, Read)

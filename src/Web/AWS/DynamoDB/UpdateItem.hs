@@ -17,7 +17,7 @@ module Web.AWS.DynamoDB.UpdateItem
        ) where
        
 import           Data.Aeson 
-import           Data.Text    (Text)
+import           Data.Text      ( Text )
 import           Data.Typeable  ( Typeable )
 
 import           Web.AWS.DynamoDB.Client
@@ -28,9 +28,9 @@ import           Web.AWS.DynamoDB.Util
 -- | Types
 data UpdateItem = UpdateItem {
       updateItemTableName                   :: Text   -- ^ Required
-    , updateItemKeys                        :: [Item] -- ^ Required
+    , updateItemKeys                        :: PrimaryKey -- ^ Required
     , updateItemUpdateExpression            :: Text
-    , updateItemExpressionAttributeValues   :: [Item]
+    , updateItemExpressionAttributeValues   :: Item
     , updateItemConditionExpression         :: Maybe Text
     , updateItemExpressionAttributeNames    :: Maybe Text
     , updateItemReturnConsumedCapacity      :: Maybe Text
@@ -43,13 +43,10 @@ data UpdateItem = UpdateItem {
 instance ToJSON UpdateItem where
   toJSON UpdateItem{..} =
     object [ "TableName" .= updateItemTableName
-           , "Key" .= let x = map (\(Item k t v) -> k .= object [ toText t .= v ]) updateItemKeys
-                      in object x
+           , "Key" .= updateItemKeys
            , "UpdateExpression" .= updateItemUpdateExpression
            , "ConditionExpression" .= updateItemConditionExpression
-           , "ExpressionAttributeValues" .=
-                let x = map (\(Item k t v) -> k .= object [ toText t .= v ]) updateItemExpressionAttributeValues
-                in object x
+           , "ExpressionAttributeValues" .= updateItemConditionExpression
            , "ReturnValues" .= updateItemReturnValues
            ]
 

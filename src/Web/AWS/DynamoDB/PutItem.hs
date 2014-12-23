@@ -29,7 +29,7 @@ import Web.AWS.DynamoDB.Util
 -- | `PutItem` object
 -- <<http://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_PutItem.html>>
 data PutItem = PutItem {
-     putItems                           :: [Item]     -- ^ Required 
+     putItems                           :: Item       -- ^ Required 
    , putItemTableName                   :: Text       -- ^ Required 
    , putItemConditionExpression         :: Maybe Text -- ^ Not Required
    , putItemExpressionAttributeNames    :: Maybe Text -- ^ Not Required 
@@ -43,20 +43,21 @@ data PutItem = PutItem {
 -- | `ToJSON` instance for `PutItem` object
 instance ToJSON PutItem where
   toJSON PutItem{..} =
-    object [  "Item" .= let x = map (\(Item k t v) -> k .= object [ toText t .= v ]) putItems
-                        in object x
+    object [  "Item" .= putItems
            ,  "TableName" .= putItemTableName
            ,  "ReturnValues" .= NONE
            ]
 
 ------------------------------------------------------------------------------
 -- | PutItem Response type
-data PutItemResponse = PutItemResponse deriving (Show, Eq, Typeable)
+data PutItemResponse = PutItemResponse {
+      putItemAttributes :: Maybe Item
+    } deriving (Show, Eq, Typeable)
 
 ------------------------------------------------------------------------------
 -- | PutItem Responses are always ignored since ReturnValues is always NONE
 instance FromJSON PutItemResponse where
-   parseJSON (Object _) = pure PutItemResponse
+   parseJSON (Object o) = PutItemResponse <$> o .:? "Attributes"
 
 ------------------------------------------------------------------------------
 -- | `DynamoAction` instance

@@ -14,18 +14,19 @@
 ------------------------------------------------------------------------------
 module Web.AWS.DynamoDB.GetItem where
 
-import           Data.Aeson
-import           Data.Text           (Text)
-import           Data.Typeable
+import Control.Applicative
+import Data.Aeson
+import Data.Text (Text)
+import Data.Typeable
 
-import           Web.AWS.DynamoDB.Client
-import           Web.AWS.DynamoDB.Util
-import           Web.AWS.DynamoDB.Types
+import Web.AWS.DynamoDB.Client
+import Web.AWS.DynamoDB.Util
+import Web.AWS.DynamoDB.Types
 
 ------------------------------------------------------------------------------
 -- | `GetItem` object
 data GetItem = GetItem {
-    getItemKey       :: [Item] 
+    getItemKey       :: PrimaryKey
   , getItemTableName :: Text
   } deriving (Show, Typeable)
 
@@ -34,13 +35,24 @@ data GetItem = GetItem {
 instance ToJSON GetItem where
   toJSON GetItem{..} =
     object [
-        "Key" .= let x = map (\(Item k t v) -> k .= object [ toText t .= v ]) getItemKey
-                 in object x
+        "Key"       .= getItemKey
       , "TableName" .= getItemTableName                  
       ]
 
 ------------------------------------------------------------------------------
+-- | Get Item Response
+data GetItemResponse = GetItemResponse {
+        getItemResponse :: Maybe Item
+    } deriving (Show)
+
+------------------------------------------------------------------------------
+-- | FromJSON for GetItemResponse
+instance FromJSON GetItemResponse where
+   parseJSON (Object o) =
+       GetItemResponse <$> o .:? "Item"
+
+------------------------------------------------------------------------------
 -- | `DynamoAction` instance
-instance DynamoAction GetItem ()
+instance DynamoAction GetItem GetItemResponse
 
 
