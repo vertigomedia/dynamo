@@ -387,8 +387,16 @@ instance ToJSON Select where
 ------------------------------------------------------------------------------
 -- | `ComparisonOperator` object
 data ComparisonOperator =
-  GT | LT | EQ | LE | GE | BEGINS_WITH | BETWEEN
-  deriving (Show)
+  DGT | DLT | DEQ | DLE | DGE | BEGINS_WITH | BETWEEN
+  
+instance Show ComparisonOperator where
+    show DGT = "GT"
+    show DLT = "LT"
+    show DEQ = "EQ"
+    show DLE = "LE"
+    show DGE = "GE"
+    show BEGINS_WITH = "BEGINS_WITH"
+    show BETWEEN = "BETWEEN"
 
 ------------------------------------------------------------------------------
 -- | `ToJSON` instance for `ComparisonOperator` 
@@ -587,7 +595,7 @@ type HTTPErrorCode = Int
 data DynamoError =
     ParseError String
   | RequestCreationError String
-  | UnknownError String
+  | ConnectionError String
   | ClientError HTTPErrorCode DynamoErrorDetails -- ^ Any error indicated by a 4xx response
   | ServerError HTTPErrorCode DynamoErrorDetails -- ^ Any error indicated by a 5xx response
   deriving (Show)

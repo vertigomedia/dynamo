@@ -48,7 +48,9 @@ import           System.IO.Streams.HTTP         ( parseUrl
                                                 , stream
                                                 , withHTTP
                                                 , responseBody
-                                                , HttpException ( StatusCodeException )
+                                                , HttpException
+                                                    ( StatusCodeException
+                                                    )
                                                 )
 import           System.IO.Streams.Attoparsec   ( parseFromStream )
                                                 
@@ -125,6 +127,7 @@ issueDynamo config@DynamoConfig{..} dynamoObject url heads  = do
                return $ case num of
                  code | code >= 400 && code < 500 -> Left $ ClientError code errorJson
                       | code >= 500 -> Left $ ServerError code errorJson
+
          Right (Success resp) -> return $ Right resp
          Right (Error str)    -> return $ Left $ ParseError str
 

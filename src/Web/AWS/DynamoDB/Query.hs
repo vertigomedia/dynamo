@@ -14,17 +14,22 @@
 module Web.AWS.DynamoDB.Query
     ( -- * Types
       defaultQuery
-    , Query (..)
+    , Query          (..)
+    , Condition      (..)
+    , AttributeValue (..)
     ) where
 
-import           Prelude hiding ( Ordering(..) )
-import           Data.Aeson
-import           Data.Text      ( Text )
-import           Data.Typeable  ( Typeable )
+import Control.Applicative
+import Data.Aeson
+import Data.Text ( Text )
+import Data.Typeable ( Typeable )
+import Data.Vector
+import qualified Data.Vector as V
+import Prelude hiding ( Ordering(..) )
 
-import           Web.AWS.DynamoDB.Client
-import           Web.AWS.DynamoDB.Util
-import           Web.AWS.DynamoDB.Types
+import Web.AWS.DynamoDB.Client
+import Web.AWS.DynamoDB.Util
+import Web.AWS.DynamoDB.Types
 
 ------------------------------------------------------------------------------
 -- | Query helper
@@ -82,7 +87,7 @@ instance ToJSON Query where
   toJSON Query{..} = object [
       "TableName" .= queryTableName
     , "Select" .= querySelect
-    , "KeyConditions" .= let x = map (\(Condition iname vlist op) ->
+    , "KeyConditions" .= let x = Prelude.map (\(Condition iname vlist op) ->
                                        iname .= object [
                                          "ComparisonOperator" .= op
                                        , "AttributeValueList" .= vlist
@@ -90,12 +95,20 @@ instance ToJSON Query where
                          in object x
     ]
 
+------------------------------------------------------------------------------
+-- | Response to a 'Query' query.
 data QueryResponse = QueryResponse {
-        queryItems :: [String] 
-      }
+      qrItems    :: V.Vector Item
+    , qrCount    :: Int
+    , qrScanned  :: Int
+    } deriving (Eq,Show,Read,Ord)
 
 instance FromJSON QueryResponse where
-   parseJSON (Object o) = undefined
+    parseJSON (Object v) = QueryResponse
+      <$> v .:?  "Items" .!= V.empty
+      <*> v .:  "Count"
+      <*> v .:  "ScannedCount"
+    parseJSON _ = fail "QueryResponse must be an object." 
 
 ------------------------------------------------------------------------------
 -- | `DynamoAction` instance

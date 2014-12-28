@@ -14,6 +14,7 @@
 module Web.AWS.DynamoDB.PutItem
        (  -- * Types
          PutItem (..)
+       , defaultPutItem
        ) where
 
 import Control.Applicative
@@ -24,6 +25,11 @@ import Data.Typeable ( Typeable )
 import Web.AWS.DynamoDB.Client
 import Web.AWS.DynamoDB.Types
 import Web.AWS.DynamoDB.Util
+
+------------------------------------------------------------------------------
+-- | Default Put Item Object
+defaultPutItem x y = PutItem x y Nothing Nothing Nothing
+                                 Nothing Nothing Nothing
 
 ------------------------------------------------------------------------------
 -- | `PutItem` object
