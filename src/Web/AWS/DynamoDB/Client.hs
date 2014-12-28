@@ -114,7 +114,7 @@ issueDynamo config@DynamoConfig{..} dynamoObject url heads  = do
          Left e -> 
            case fromException e of
              Just (StatusCodeException (Status num _) headers _) -> do
-               print $ lookup "X-Response-Body-Start" headers 
+               when dynamoDebug $ print $ lookup "X-Response-Body-Start" headers 
                let res = lookup "X-Response-Body-Start" headers 
                    errorJson = case res of 
                      Nothing -> DynamoErrorDetails ClientParsingError $ Just "no json body"

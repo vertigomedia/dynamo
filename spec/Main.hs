@@ -1,21 +1,23 @@
+{-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE OverloadedStrings #-}
 module Test.DynamoDB where
 
-import Web.AWS.DynamoDB.CreateTable
-import Web.AWS.DynamoDB.DeleteTable
-import Web.AWS.DynamoDB.PutItem
-import Web.AWS.DynamoDB.Client
-import Web.AWS.DynamoDB.Types
+import           Control.Retry
 import qualified Data.Map as M
-import Control.Retry
-import Test.Hspec
+import           Data.Text
+import           Test.Hspec
+import           Web.AWS.DynamoDB.Client
+import           Web.AWS.DynamoDB.CreateTable
+import           Web.AWS.DynamoDB.DeleteTable
+import           Web.AWS.DynamoDB.PutItem
+import           Web.AWS.DynamoDB.GetItem
+import           Web.AWS.DynamoDB.Types
 
 ------------------------------------------------------------------------------
 -- | Model
 data Dog = Dog {
-      name :: String
+      name :: Text
     } deriving (Show)
-
 
 ------------------------------------------------------------------------------
 -- | Create Table
@@ -31,11 +33,26 @@ delTable :: DeleteTable
 delTable = DeleteTable "Dog"
 
 ------------------------------------------------------------------------------
--- | Put Item Table
-putDog :: PutItem
-putDog = PutItem {
-             
+-- | Create Table
+getDog :: Text -> Get
+getDog name = GetItem {
+               getItemKey = PrimaryKey ("name", toValue name) Nothing
+             , getItemTableName = "Dog"
            }
+
+------------------------------------------------------------------------------
+-- | Put Item Table
+-- putDog :: PutItem
+-- putDog = PutItem {
+--            putItems = toItem Dog { name = "fido" }
+--          , putItemTableName = "Dog"
+--          , putItemConditionExpression         = Nothing
+--          , putItemExpressionAttributeValues   = Nothing
+--          , putItemExpressionAttributeNames    = Nothing
+--          , putItemReturnConsumedCapacity      = Nothing
+--          , putItemReturnItemCollectionMetrics = Nothing
+--          , putItemReturnValue                 = Nothing
+--          }
 
 ------------------------------------------------------------------------------
 -- | Retrieve Config
@@ -57,5 +74,5 @@ getConfig = do
 main :: IO ()
 main = do
   config <- getConfig
-  print =<< dynamo config dogTable
+  print =<< dynamo config (getDog "fido")
 --  print =<< dynamo config delTable
