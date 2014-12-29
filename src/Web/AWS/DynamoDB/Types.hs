@@ -58,8 +58,8 @@ data DynamoConfig = DynamoConfig {
       , dynamoManager   :: Manager
       , dynamoBackOff   :: RetryPolicy
       , dynamoRegion    :: Region
-      , dynamoIsDev     :: Bool -- * Default port for dynalite is 4567
-      , dynamoDebug     :: Bool -- * Will print json response and http info
+      , dynamoIsDev     :: Bool -- ^ Default port for dynalite is 4567
+      , dynamoDebug     :: Bool -- ^ Will print json response and http info
       } 
 
 ------------------------------------------------------------------------------

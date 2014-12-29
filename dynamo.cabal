@@ -70,6 +70,8 @@ Test-Suite spec
                     , data-default    >= 0.5.3
                     , dynamo
                     , hspec
+                    , retry
+                    , text
                     , http-client-streams 
                     , scientific      >= 0.3.3.3
                     , tagged          >= 0.7.3
