@@ -1,134 +1,105 @@
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE OverloadedStrings   #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
-import Web.AWS.DynamoDB
+module Main where
+
+-------------------------------------------------------------------------------
+import           Control.Concurrent
+import           Control.Monad
+import qualified Data.Text             as T
+
+import           Web.AWS.DynamoDB.Commands
+import           Web.AWS.DynamoDB.Client
+import           Web.AWS.DynamoDB.Core
+import           Web.AWS.DynamoDB.Types
+import           System.IO.Streams.HTTP
+import           Control.Retry
+
+-------------------------------------------------------------------------------
+
+conf :: IO DynamoConfig
+conf = do
+  let secret = SecretKey "secret"
+      public = PublicKey "public"
+  mgr <- newManager $ opensslManagerSettings context
+  return $ DynamoConfig public secret mgr (limitRetries 5) UsEast1 True False
+
+createTableAndWait :: IO ()
+createTableAndWait = do
+  config <- conf
+  let req0 = createTable "devel-1"
+        [AttributeDefinition "name" AttrString]
+        (HashOnly "name")
+        (ProvisionedThroughput 1 1)
+  resp0 <- dynamo config req0
+  print resp0
+
+  print "Waiting for table to be created"
+  threadDelay (30 * 1000000)
+
+  let req1 = DescribeTable "devel-1"
+  resp1 <- dynamo config req1
+  print resp1
 
 main :: IO ()
-main = putStrLn "hi"
+main = do
+  createTableAndWait
+  config <- conf
+  putStrLn "Putting an item..."
 
-------------------------------------------------------------------------------
--- | Table Tests
-testTable :: Text -> IO (Either DynamoError TableResponse)
-testTable x = createTable CreateTable {
-    createTableName = x
-  , createTablePrimaryKey = HashAndRangeType (Key "ID" S) (Key "Age" N)
-  , createTableProvisionedThroughput = Throughput 1 1  
-  , createTableGlobalSecondaryIndexes = Just [
-        GlobalSecondaryIndex "testIndex" [ KeySchema "A" HASH ] (Projection [] KEYS_ONLY) (Throughput 1 1)
-      ]
-  , createTableLocalSecondaryIndexes = Just []
- }
+  let x = item [ attrAs text "name" "josh"
+               , attrAs text "class" "not-so-awesome"]
 
-------------------------------------------------------------------------------
--- | Delete Item Test
-test :: FromJSON a => IO (Either DynamoError a)
-test = deleteItem $ DeleteItem
-       [ Item "ID" S "8"
-       , Item "Age" N "8"
-       ] "Dogs"
+  let req1 = (putItem "devel-1" x ) { piReturn  = URAllOld
+                                    , piRetCons =  RCTotal
+                                    , piRetMet  = RICMSize
+                                    }
 
-test2 :: FromJSON a => IO (Either DynamoError a)
-test2 = deleteItem $ DeleteItem
-       [ Item "ID" S "2"
-       ] "People"
 
-------------------------------------------------------------------------------
--- | Delete Table Test
-test :: IO (Either DynamoError Value)
-test = deleteTable DeleteTable { deleteTableName = "Dogs" }
+  resp1 <- dynamo config req1
+  print resp1
 
-------------------------------------------------------------------------------
--- | Describe Table Test
-test :: IO (Either DynamoError TableResponse)
-test = describeTable $ DescribeTable "Dogs"
+  putStrLn "Getting the item back..."
 
-------------------------------------------------------------------------------
--- | Update Table Test
-test :: FromJSON a => IO (Either DynamoError a)
-test = updateTable $ UpdateTable "Dogs" (Throughput 8 8)
+  let req2 = getItem "devel-1" (hk "name" "josh")
+  resp2 <- dynamo config req2
+  print resp2
 
-------------------------------------------------------------------------------
--- | Get Item Test
-test :: FromJSON a => IO (Either DynamoError a)
-test = getItem $ GetItem
-       [ Item "ID" S "1"
-       ] "People"
+  print =<< dynamo config
+    (updateItem "devel-1" (hk "name" "josh") [au (Attribute "class" "awesome")])
 
-test2 :: FromJSON a => IO (Either DynamoError a)
-test2 = getItem $ GetItem
-       [ Item "ID" S "8"
-       , Item "Age" N "8"
-       ] "Dogs"
+  echo "Updating with false conditional."
+  (print =<< dynamo config
+    (updateItem "devel-1" (hk "name" "josh") [au (Attribute "class" "awesomer")])
+      { uiExpect = Conditions CondAnd [Condition "name" (DEq "john")] })
 
-test3 :: FromJSON a => IO (Either DynamoError a)
-test3 = getItem $ GetItem
-       [ Item "ID" S "9"
-       , Item "Age" N "99"
-       ] "Dogs"
+  echo "Getting the item back..."
+  print =<< dynamo config req2
 
-------------------------------------------------------------------------------
--- | Test Deleting all tables
-testDel :: IO ()
-testDel = do Right names <- fmap tableNames <$> (listTables $ ListTables Nothing Nothing)
-             xs <- forM names $ \n -> deleteTable (DeleteTable n)
-             print xs
- 
-------------------------------------------------------------------------------
--- | Update example
-testu :: FromJSON a => IO (Either DynamoError a)
-testu = do
-  let u = updateItemDefault "Dogs" [
-          Item "ID" S "8"
-        , Item "Age" N "8"
-        ]
-  let u' = u { updateItemUpdateExpression = Just "set Num = :val1"
-             , updateItemExpressionAttributeValues = Just [ Item ":val1" N "9" ]
-             , updateItemReturnValues = Just ALL_NEW
-             }
-  print (encode u')
-  putStrLn ""
-  updateItem u'
 
-------------------------------------------------------------------------------
--- | Atomic Counter Example
-testa :: FromJSON a => IO (Either DynamoError a)
-testa = do
-  let u = updateItemDefault "Dogs" [
-          Item "ID" S "8"
-        , Item "Age" N "8"
-        ]
-  let u' = u { updateItemUpdateExpression = Just "set Num = Num + :val1"
-             , updateItemExpressionAttributeValues = Just [ Item ":val1" N "1" ]
-             , updateItemReturnValues = Just ALL_NEW
-             }
-  print (encode u')
-  putStrLn ""
-  updateItem u'
+  echo "Updating with true conditional"
+  print =<< dynamo config
+    (updateItem "devel-1" (hk "name" "josh") [au (Attribute "class" "awesomer")])
+      { uiExpect = Conditions CondAnd [Condition "name" (DEq "josh")] }
 
-------------------------------------------------------------------------------
--- | Query Test
-test :: (Show a, FromJSON a) => IO (Either DynamoError a)
-test = do
-    print (encode thing)
-    putStrLn ""
-    query thing
-  where thing = let q = defaultQuery "Dogs" [
-                      Condition "ID" [AttributeValue S "2"] EQ
---                 ,  Condition "Age" [AttributeValue N "19"] EQ
-                      ] 
-                in q { querySelect = Just Count }  
+  echo "Getting the item back..."
+  print =<< dynamo config req2
 
-------------------------------------------------------------------------------
--- | Put Item Tests
--- test :: IO ()
--- test = putItemDefault "Dogs"
---        [ Item "ID" S "8"
---        , Item "Age" N "8"
---        , Item "Num" N "8"
---        ]
+  echo "Running a Query command..."
+  print =<< dynamo config (query "devel-1" (Slice (Attribute "name" "josh") Nothing))
 
--- test2 :: IO ()
--- test2 = putItemDefault "People" 
---        [ Item "ID" S "2"
---        , Item "Name" S "Alex"
---        ]                 
+  echo "Filling table with several items..."
+  forM_ [0..30] $ \ i -> do
+    threadDelay 50000
+    dynamo config $ putItem "devel-1" $
+      item [Attribute "name" (toValue $ T.pack ("lots-" ++ show i)), attrAs int "val" i]
+
+
+
+
+echo = putStrLn
+
+
+
+
 

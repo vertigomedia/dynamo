@@ -25,56 +25,56 @@ description:
     [Limitations]
     Batch operations + Scan currently unsupported. 
     .
-
-    [Database Operations - <http://docs.aws.amazon.com/amazondynamodb/latest/APIReference/Welcome.html>]
-    To get started implement the `ToDynamo` typeclass on your types.
-    By default the DynamoDB API transmits all data in JSON format. Our types take care of that for you, all that isn needed is to implement the `ToDynamo` typeclass.
-    .
-    > import Web.AWS.DynamoDB
-    > 
-    > main :: IO ()
-    > main = do
-    >   let config = DynamoConfig "public key" "secret key"
-    >   print =<< dynamo config listTablesDefault 
-    >
-    .
+    This is Oz's Code, ported to use an io-streams backend
 library
-  exposed-modules:     Web.AWS.DynamoDB.Helpers
-                     , Web.AWS.DynamoDB.Abstract
-                     , Web.AWS.DynamoDB.Client
+  exposed-modules:     Web.AWS.DynamoDB.Client
+                     , Web.AWS.DynamoDB.Core
                      , Web.AWS.DynamoDB.Query
+                     , Web.AWS.DynamoDB.Table
                      , Web.AWS.DynamoDB.Types
                      , Web.AWS.DynamoDB.DeleteItem
                      , Web.AWS.DynamoDB.GetItem
                      , Web.AWS.DynamoDB.PutItem
                      , Web.AWS.DynamoDB.UpdateItem
-                     , Web.AWS.DynamoDB.CreateTable
-                     , Web.AWS.DynamoDB.ListTables
-                     , Web.AWS.DynamoDB.DescribeTable
-                     , Web.AWS.DynamoDB.UpdateTable
-                     , Web.AWS.DynamoDB.DeleteTable
+                     , Web.AWS.DynamoDB.Commands
+  other-modules:       Web.AWS.DynamoDB.Util
 
   hs-source-dirs:      src
   build-depends:       aeson
+                     , attoparsec
                      , aws-general
-                     , base >=4.7 && <4.8
+                     , base            >=4.7 && <4.8
+                     , base64-bytestring
                      , bytestring
-                     , case-insensitive
-                     , either
+                     , cereal
+                     , containers      >= 0.5.5.1
+                     , data-default    >= 0.5.3
                      , http-types
-                     , mtl
                      , io-streams
-                     , io-streams-http
+                     , http-client-streams
+                     , retry
+                     , scientific      >= 0.3.3.3
+                     , tagged          >= 0.7.3
                      , text
                      , time
-                     , transformers
                      , unordered-containers
+                     , vector          >= 0.10.12.2
   default-language:    Haskell2010
 
 Test-Suite spec
     type:             exitcode-stdio-1.0
     hs-source-dirs:   spec
     main-is:          Main.hs
-    build-depends:    base, dynamo, hspec
+    build-depends:    base
+                    , containers      >= 0.5.5.1
+                    , data-default    >= 0.5.3
+                    , dynamo
+                    , hspec
+                    , retry
+                    , text
+                    , http-client-streams 
+                    , scientific      >= 0.3.3.3
+                    , tagged          >= 0.7.3
+                    , vector          >= 0.10.12.2
     default-language: Haskell2010
     ghc-options:      -Wall
