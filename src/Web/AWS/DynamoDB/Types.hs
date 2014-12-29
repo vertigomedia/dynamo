@@ -161,6 +161,13 @@ data AttributeDefinition = AttributeDefinition {
   } deriving (Show, Eq)
 
 ------------------------------------------------------------------------------
+-- | A Key-Value pair
+data Attribute = Attribute {
+      attrName :: T.Text
+    , attrVal  :: DValue
+    } deriving (Read,Show,Ord,Eq,Typeable)
+               
+------------------------------------------------------------------------------
 -- | `ToJSON` instance for `AttributeDefinition`
 instance ToJSON AttributeDefinition where
   toJSON AttributeDefinition{..} =

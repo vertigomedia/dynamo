@@ -65,6 +65,7 @@ data PutItemResponse = PutItemResponse {
 instance FromJSON PutItemResponse where
    parseJSON (Object o) = PutItemResponse <$> o .:? "Attributes"
 
+
 ------------------------------------------------------------------------------
 -- | `DynamoAction` instance
 instance DynamoAction PutItem PutItemResponse
