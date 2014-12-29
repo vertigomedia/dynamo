@@ -16,42 +16,70 @@ module Web.AWS.DynamoDB.DeleteItem
       DeleteItem (..)
     ) where
 
-import           Control.Applicative (pure)
+import           Control.Applicative (pure, (<$>), (<*>))
 import           Data.Aeson
 import           Data.Text    (Text)
+import qualified Data.Text as T
 import           Data.Typeable
+import           Data.Default
 
 import           Web.AWS.DynamoDB.Client 
+import           Web.AWS.DynamoDB.Core
 import           Web.AWS.DynamoDB.Types
 import           Web.AWS.DynamoDB.Util   ( toText )
 
-------------------------------------------------------------------------------
--- | Types
+
 data DeleteItem = DeleteItem {
-    deleteItemKey         :: PrimaryKey
-  , deleteItemTableName   :: Text
---, deleteItemReturnValue :: ReturnValue -- will default to NONE
-  } deriving (Show, Typeable)
+      diTable   :: T.Text
+    -- ^ Target table
+    , diKey     :: PrimaryKey
+    -- ^ The item to delete.
+    , diExpect  :: Conditions
+    -- ^ (Possible) set of expections for a conditional Put
+    , diReturn  :: UpdateReturn
+    -- ^ What to return from this query.
+    , diRetCons :: ReturnConsumption
+    , diRetMet  :: ReturnItemCollectionMetrics
+    } deriving (Eq,Show,Read,Ord, Typeable)
 
-------------------------------------------------------------------------------
--- | `ToJSON` instance for `DeleteItem`
+
+-------------------------------------------------------------------------------
+-- | Construct a minimal 'DeleteItem' request.
+deleteItem :: T.Text
+        -- ^ A Dynamo table name
+        -> PrimaryKey
+        -- ^ Item to be saved
+        -> DeleteItem
+deleteItem tn key = DeleteItem tn key def def def def
+
+
 instance ToJSON DeleteItem where
-  toJSON DeleteItem{..} =
-    object [
-        "Key"          .= deleteItemKey
-      , "TableName"    .= deleteItemTableName                  
-      ]
+    toJSON DeleteItem{..} =
+        object $ expectsJson diExpect ++
+          [ "TableName" .= diTable
+          , "Key" .= diKey
+          , "ReturnValues" .= diReturn
+          , "ReturnConsumedCapacity" .= diRetCons
+          , "ReturnItemCollectionMetrics" .= diRetMet
+          ]
 
-------------------------------------------------------------------------------
--- | Delete item response
 data DeleteItemResponse = DeleteItemResponse {
-        
-      } deriving (Show)
+      dirAttrs    :: Maybe Item
+    -- ^ Old attributes, if requested
+    , dirConsumed :: Maybe ConsumedCapacity
+    -- ^ Amount of capacity consumed
+    , dirColMet   :: Maybe ItemCollectionMetrics
+    -- ^ Collection metrics if they have been requested.
+    } deriving (Eq,Show,Read,Ord, Typeable)
 
-------------------------------------------------------------------------------
--- | ToJSON Delete Item Response
+
 instance FromJSON DeleteItemResponse where
-   parseJSON (Object o) = pure DeleteItemResponse
+    parseJSON (Object v) = DeleteItemResponse
+        <$> v .:? "Attributes"
+        <*> v .:? "ConsumedCapacity"
+        <*> v .:? "ItemCollectionMetrics"
+    parseJSON _ = fail "DeleteItemResponse must be an object."
+
 
 ------------------------------------------------------------------------------
 -- | `DynamoAction` instance

@@ -11,104 +11,110 @@
 -- Portability : POSIX
 -- 
 ------------------------------------------------------------------------------
-module Web.AWS.DynamoDB.Query
-    ( -- * Types
-      defaultQuery
-    , Query          (..)
-    , Condition      (..)
-    , AttributeValue (..)
-    ) where
+module Web.AWS.DynamoDB.Query where
 
-import Control.Applicative
-import Data.Aeson
-import Data.Text ( Text )
-import Data.Typeable ( Typeable )
-import Data.Vector
-import qualified Data.Vector as V
-import Prelude hiding ( Ordering(..) )
+import           Control.Applicative
+import           Data.Aeson
+import           Data.Default
+import           Data.Maybe
+import qualified Data.Text           as T
+import           Data.Typeable
+import qualified Data.Vector         as V
 
-import Web.AWS.DynamoDB.Client
-import Web.AWS.DynamoDB.Util
-import Web.AWS.DynamoDB.Types
+import           Web.AWS.DynamoDB.Core
+import           Web.AWS.DynamoDB.Util
+import           Web.AWS.DynamoDB.Types
 
-------------------------------------------------------------------------------
--- | Query helper
-defaultQuery :: Text -> [Condition] -> Query
-defaultQuery t cs = Query t cs Nothing Nothing Nothing
-                               Nothing Nothing Nothing
-                               Nothing Nothing Nothing
-                               Nothing Nothing 
+-------------------------------------------------------------------------------
+-- | 'Slice' is the primary constraint in a 'Query' command, per AWS
+-- requirements.
+--
+-- All 'Query' commands must specify a hash attribute via 'DEq' and
+-- optionally provide a secondary range attribute.
+data Slice = Slice {
+      sliceHash :: Attribute
+    -- ^ Hash value of the primary key or index being used
+    , sliceCond :: Maybe Condition
+    -- ^ An optional condition specified on the range component, if
+    -- present, of the primary key or index being used.
+    }  deriving (Eq,Show,Read,Ord,Typeable)
 
-------------------------------------------------------------------------------
--- | You can query a table, primary key
+
+-- | A Query command that uses primary keys for an expedient scan.
 data Query = Query {
-    queryTableName                 :: Text           -- ^ Required
-  , queryKeyConditions             :: [Condition]    -- ^ Required
-  , queryConsistentRead            :: Maybe Bool     -- ^ Not Required, defaults to False (eventually consistent)
-  , queryLimit                     :: Maybe Int      -- ^ Not Required
-  , queryExpressionAttributeNames  :: Maybe Text     -- ^ Not Required
-  , queryExpressionAttributeValues :: Maybe Text     -- ^ Not Required
-  , queryFilterExpression          :: Maybe Text     -- ^ Not Required
-  , queryProjectionExpression      :: Maybe Text     -- ^ Not Required
-  , queryConditionExpression       :: Maybe Text     -- ^ Not Required
-  , queryIndexName                 :: Maybe Text     -- ^ Not Required
-  , queryReturnedConsumedCapacity  :: Maybe Capacity -- ^ Not Required
-  , queryScanIndexForward          :: Maybe Bool     -- ^ Not Required
-  , querySelect                    :: Maybe Select   -- ^ Not Required
-  } deriving (Show, Typeable)
+      qTableName     :: T.Text
+    -- ^ Required.
+    , qKeyConditions :: Slice
+    -- ^ Required. Hash or hash-range main condition.
+    , qFilter        :: Conditions
+    -- ^ Whether to filter results before returning to client
+    , qStartKey      :: Maybe [Attribute]
+    -- ^ Exclusive start key to resume a previous query.
+    , qLimit         :: Maybe Int
+    -- ^ Whether to limit result set size
+    , qForwardScan   :: Bool
+    -- ^ Set to False for descending results
+    , qSelect        :: QuerySelect
+    -- ^ What to return from 'Query'
+    , qIndex         :: Maybe T.Text
+    -- ^ Whether to use a secondary/global index
+    , qConsistent    :: Bool
+    } deriving (Eq,Show,Read,Ord,Typeable)
 
-------------------------------------------------------------------------------
--- | `KeyCondition` Type
-data KeyCondition =
-  KeyCondition [Condition]
-  deriving (Show)
 
-------------------------------------------------------------------------------
--- | `Condition` Type
-data Condition =
-  Condition Name [AttributeValue] ComparisonOperator
-  deriving (Show)
-
-------------------------------------------------------------------------------
--- | `AttributeValue` Type
-data AttributeValue =
-  AttributeValue DynamoType Text
-  deriving (Show)
-
-------------------------------------------------------------------------------
--- | `ToJSON` instance for `AttributeValue` object
-instance ToJSON AttributeValue where
-  toJSON (AttributeValue dtype ivalue) =
-    object [ toText dtype .= ivalue ]
-
-------------------------------------------------------------------------------
--- | `ToJSON` instance for `Query` object
+-------------------------------------------------------------------------------
 instance ToJSON Query where
-  toJSON Query{..} = object [
-      "TableName" .= queryTableName
-    , "Select" .= querySelect
-    , "KeyConditions" .= let x = Prelude.map (\(Condition iname vlist op) ->
-                                       iname .= object [
-                                         "ComparisonOperator" .= op
-                                       , "AttributeValueList" .= vlist
-                                       ]) queryKeyConditions
-                         in object x
-    ]
+    toJSON Query{..} = object $
+      catMaybes
+        [ (("ExclusiveStartKey" .= ) . attributesJson) <$> qStartKey
+        , ("Limit" .= ) <$> qLimit
+        , ("IndexName" .= ) <$> qIndex
+        ] ++
+      conditionsJson "QueryFilter" qFilter ++
+      querySelectJson qSelect ++
+      [ "ScanIndexForward" .= qForwardScan
+      , "TableName".= qTableName
+      , "KeyConditions" .= sliceJson qKeyConditions
+      , "ConsistentRead" .= qConsistent
+      ]
 
-------------------------------------------------------------------------------
+
+-------------------------------------------------------------------------------
+-- | Construct a minimal 'Query' request.
+query
+    :: T.Text
+    -- ^ Table name
+    -> Slice
+    -- ^ Primary key slice for query
+    -> Query
+query tn sl = Query tn sl def Nothing Nothing True def Nothing False
+
+
 -- | Response to a 'Query' query.
 data QueryResponse = QueryResponse {
       qrItems    :: V.Vector Item
+    , qrLastKey  :: Maybe [Attribute]
     , qrCount    :: Int
     , qrScanned  :: Int
     } deriving (Eq,Show,Read,Ord)
 
+
 instance FromJSON QueryResponse where
     parseJSON (Object v) = QueryResponse
-      <$> v .:?  "Items" .!= V.empty
-      <*> v .:  "Count"
-      <*> v .:  "ScannedCount"
-    parseJSON _ = fail "QueryResponse must be an object." 
+        <$> v .:?  "Items" .!= V.empty
+        <*> ((do o <- v .: "LastEvaluatedKey"
+                 Just <$> parseAttributeJson o)
+             <|> pure Nothing)
+        <*> v .:  "Count"
+        <*> v .:  "ScannedCount"
+    parseJSON _ = fail "QueryResponse must be an object."
+
+
+sliceJson :: Slice -> Value
+sliceJson Slice{..} = object (map conditionJson cs)
+    where
+      cs = maybe [] return sliceCond ++ [hashCond]
+      hashCond = Condition (attrName sliceHash) (DEq (attrVal sliceHash))
 
 ------------------------------------------------------------------------------
 -- | `DynamoAction` instance

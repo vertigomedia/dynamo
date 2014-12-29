@@ -30,7 +30,6 @@ import           Data.Bool                      ( bool )
 import           Data.Time                      ( getCurrentTime )
 import qualified Data.Text as T
 import           Data.Text                      ( Text )
-import           Network.HTTP.Client            ( Request (..) )
 import           Network.HTTP.Types.Status      ( Status(..) )
 import           Network.HTTP.Types.Header      ( RequestHeaders )
 import           Aws.SignatureV4                ( newCredentials
@@ -47,7 +46,9 @@ import           System.IO.Streams.HTTP         ( parseUrl
                                                 , requestBody
                                                 , stream
                                                 , withHTTP
+                                                , withOpenSSL
                                                 , responseBody
+                                                , Request (..)
                                                 , HttpException
                                                     ( StatusCodeException
                                                     )
@@ -101,13 +102,12 @@ dynamo config@DynamoConfig{..} dynamoObject = do
 --   (FromJSON b, ToJSON a) =>
 --   DynamoConfig
 --   -> a -> String -> RequestHeaders -> IO (Either DynamoError b)
-issueDynamo config@DynamoConfig{..} dynamoObject url heads  = do
+issueDynamo config@DynamoConfig{..} dynamoObject url heads  = withOpenSSL $ do
         req <- parseUrl url
-        bsStr <- Streams.fromLazyByteString (encode dynamoObject)
         let req' = req {
             method = "POST"
           , requestHeaders = heads
-          , requestBody = stream bsStr
+          , requestBody = stream $ Streams.fromLazyByteString (encode dynamoObject)
         }
         result <- try $ withHTTP req' dynamoManager $ \resp -> do
                     r <- parseFromStream json' (responseBody resp)

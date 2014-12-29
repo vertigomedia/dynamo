@@ -20,6 +20,7 @@ import           Language.Haskell.TH
 import           Language.Haskell.TH.Quote
 
 import           Web.AWS.DynamoDB.Types
+import           Web.AWS.DynamoDB.Core
 
 ------------------------------------------------------------------------------
 -- | Dyanmo QQ Settings

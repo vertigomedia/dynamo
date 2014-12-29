@@ -1,8 +1,7 @@
-{-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE RecordWildCards    #-}
-{-# LANGUAGE OverloadedStrings  #-}
-{-# LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE RecordWildCards       #-}
+{-# LANGUAGE OverloadedStrings     #-}
+{-# LANGUAGE DeriveDataTypeable    #-}
 ------------------------------------------------------------------------------
 -- | 
 -- Module      : Web.AWS.DynamoDB.GetItem
@@ -14,42 +13,62 @@
 ------------------------------------------------------------------------------
 module Web.AWS.DynamoDB.GetItem where
 
-import Control.Applicative
-import Data.Aeson
-import Data.Text (Text)
-import Data.Typeable
+import           Control.Applicative
+import           Data.Aeson
+import           Data.Default
+import qualified Data.Text as T
+import           Data.Text    (Text)
+import           Data.Typeable
 
-import Web.AWS.DynamoDB.Client
-import Web.AWS.DynamoDB.Util
-import Web.AWS.DynamoDB.Types
+import           Web.AWS.DynamoDB.Core
+import           Web.AWS.DynamoDB.Util
+import           Web.AWS.DynamoDB.Types
 
-------------------------------------------------------------------------------
--- | `GetItem` object
+-- | A GetItem query that fetches a specific object from DDB.
+--
+-- See: @http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/API_GetItem.html@
 data GetItem = GetItem {
-    getItemKey       :: PrimaryKey
-  , getItemTableName :: Text
-  } deriving (Show, Typeable)
+      giTableName  :: T.Text
+    , giKey        :: PrimaryKey
+    , giAttrs      :: Maybe [T.Text]
+    -- ^ Attributes to get. 'Nothing' grabs everything.
+    , giConsistent :: Bool
+    -- ^ Whether to issue a consistent read.
+    , giRetCons    :: ReturnConsumption
+    -- ^ Whether to return consumption stats.
+    } deriving (Eq,Show,Read,Ord,Typeable)
 
-------------------------------------------------------------------------------
--- | `ToJSON` instance for `GetItem`
-instance ToJSON GetItem where
-  toJSON GetItem{..} =
-    object [
-        "Key"       .= getItemKey
-      , "TableName" .= getItemTableName                  
-      ]
 
-------------------------------------------------------------------------------
--- | Get Item Response
+-------------------------------------------------------------------------------
+-- | Construct a minimal 'GetItem' request.
+getItem
+    :: T.Text                   -- ^ Table name
+    -> PrimaryKey               -- ^ Primary key
+    -> GetItem
+getItem tn k = GetItem tn k Nothing False def
+
+
+-- | Response to a 'GetItem' query.
 data GetItemResponse = GetItemResponse {
-        getItemResponse :: Maybe Item
-    } deriving (Show)
+      girItem     :: Maybe Item
+    , girConsumed :: Maybe ConsumedCapacity
+    } deriving (Eq,Show,Read,Ord)
 
-------------------------------------------------------------------------------
--- | FromJSON for GetItemResponse
+
+instance ToJSON GetItem where
+    toJSON GetItem{..} = object $
+        maybe [] (return . ("AttributesToGet" .=)) giAttrs ++
+        [ "TableName" .= giTableName
+        , "Key" .= giKey
+        , "ConsistentRead" .= giConsistent
+        , "ReturnConsumedCapacity" .= giRetCons
+        ]
+
 instance FromJSON GetItemResponse where
-   parseJSON (Object o) =
-       GetItemResponse <$> o .:? "Item"
+    parseJSON (Object v) = GetItemResponse
+        <$> v .:? "Item"
+        <*> v .:? "ConsumedCapacity"
+    parseJSON _ = fail "GetItemResponse must be an object."
 
 ------------------------------------------------------------------------------
 -- | `DynamoAction` instance

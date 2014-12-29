@@ -13,57 +13,76 @@
 ------------------------------------------------------------------------------
 module Web.AWS.DynamoDB.PutItem
        (  -- * Types
-         PutItem (..)
-       , defaultPutItem
+         PutItem         (..)
+       , PutItemResponse (..)
+       , putItem
        ) where
 
-import Control.Applicative
-import Data.Aeson
-import Data.Text (Text)
-import Data.Typeable ( Typeable )
 
-import Web.AWS.DynamoDB.Client
-import Web.AWS.DynamoDB.Types
-import Web.AWS.DynamoDB.Util
+-------------------------------------------------------------------------------
+import           Control.Applicative
+import           Data.Aeson
+import           Data.Default
+import qualified Data.Text           as T
+import           Data.Typeable
+-------------------------------------------------------------------------------
+import           Web.AWS.DynamoDB.Core
+import           Web.AWS.DynamoDB.Types
+import           Web.AWS.DynamoDB.Util
+-------------------------------------------------------------------------------
 
-------------------------------------------------------------------------------
--- | Default Put Item Object
-defaultPutItem x y = PutItem x y Nothing Nothing Nothing
-                                 Nothing Nothing Nothing
 
-------------------------------------------------------------------------------
--- | `PutItem` object
--- <<http://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_PutItem.html>>
 data PutItem = PutItem {
-     putItems                           :: Item       -- ^ Required 
-   , putItemTableName                   :: Text       -- ^ Required 
-   , putItemConditionExpression         :: Maybe Text -- ^ Not Required
-   , putItemExpressionAttributeNames    :: Maybe Text -- ^ Not Required 
-   , putItemExpressionAttributeValues   :: Maybe Text -- ^ Not Required 
-   , putItemReturnConsumedCapacity      :: Maybe Text -- ^ Not Required 
-   , putItemReturnItemCollectionMetrics :: Maybe Text -- ^ Not Required 
-   , putItemReturnValue                 :: Maybe ReturnValue -- ^ Not Required 
-  } deriving (Show, Typeable)
+      piTable   :: T.Text
+    -- ^ Target table
+    , piItem    :: Item
+    -- ^ An item to Put. Attributes here will replace what maybe under
+    -- the key on DDB.
+    , piExpect  :: Conditions
+    -- ^ (Possible) set of expections for a conditional Put
+    , piReturn  :: UpdateReturn
+    -- ^ What to return from this query.
+    , piRetCons :: ReturnConsumption
+    , piRetMet  :: ReturnItemCollectionMetrics
+    } deriving (Eq,Show,Read,Ord,Typeable)
 
-------------------------------------------------------------------------------
--- | `ToJSON` instance for `PutItem` object
+
+-------------------------------------------------------------------------------
+-- | Construct a minimal 'PutItem' request.
+putItem :: T.Text
+        -- ^ A Dynamo table name
+        -> Item
+        -- ^ Item to be saved
+        -> PutItem
+putItem tn it = PutItem tn it def def def def
+
+
 instance ToJSON PutItem where
-  toJSON PutItem{..} =
-    object [  "Item" .= putItems
-           ,  "TableName" .= putItemTableName
-           ,  "ReturnValues" .= NONE
-           ]
+    toJSON PutItem{..} =
+        object $ expectsJson piExpect ++
+          [ "TableName" .= piTable
+          , "Item" .= piItem
+          , "ReturnValues" .= piReturn
+          , "ReturnConsumedCapacity" .= piRetCons
+          , "ReturnItemCollectionMetrics" .= piRetMet
+          ]
 
-------------------------------------------------------------------------------
--- | PutItem Response type
 data PutItemResponse = PutItemResponse {
-      putItemAttributes :: Maybe Item
-    } deriving (Show, Eq, Typeable)
+      pirAttrs    :: Maybe Item
+    -- ^ Old attributes, if requested
+    , pirConsumed :: Maybe ConsumedCapacity
+    -- ^ Amount of capacity consumed
+    , pirColMet   :: Maybe ItemCollectionMetrics
+    -- ^ Collection metrics if they have been requested.
+    } deriving (Eq,Show,Read,Ord)
 
-------------------------------------------------------------------------------
--- | PutItem Responses are always ignored since ReturnValues is always NONE
+
 instance FromJSON PutItemResponse where
-   parseJSON (Object o) = PutItemResponse <$> o .:? "Attributes"
+    parseJSON (Object v) = PutItemResponse
+        <$> v .:? "Attributes"
+        <*> v .:? "ConsumedCapacity"
+        <*> v .:? "ItemCollectionMetrics"
+    parseJSON _ = fail "PutItemResponse must be an object."
 
 
 ------------------------------------------------------------------------------
