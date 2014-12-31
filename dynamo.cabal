@@ -59,6 +59,7 @@ library
                      , time
                      , unordered-containers
                      , vector          >= 0.10.12.2
+                     , uuid
   default-language:    Haskell2010
 
 Test-Suite spec

@@ -91,6 +91,7 @@ import           Control.Applicative
 import qualified Control.Exception            as C
 import           Control.Monad
 import           Data.Aeson
+import qualified Data.UUID as U
 import qualified Data.Aeson                   as A
 import           Data.Aeson.Types             (Pair, parseEither)
 import qualified Data.Aeson.Types             as A
@@ -328,6 +329,12 @@ instance DynVal UTCTime where
     fromRep num = fromTS <$> fromRep num
     toRep x = toRep (toTS x)
 
+------------------------------------------------------------------------------
+-- | ToDynVal UUID
+instance DynVal U.UUID where
+    type DynRep U.UUID = DynString
+    fromRep (DynString txt) = U.fromString (T.unpack txt)     
+    toRep uuid              = toRep (T.pack . show $ uuid)
 
 -------------------------------------------------------------------------------
 pico :: Rational
