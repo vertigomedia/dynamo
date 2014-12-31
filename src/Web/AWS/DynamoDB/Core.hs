@@ -334,7 +334,7 @@ instance DynVal UTCTime where
 instance DynVal U.UUID where
     type DynRep U.UUID = DynString
     fromRep (DynString txt) = U.fromString (T.unpack txt)     
-    toRep uuid              = toRep (T.pack . show $ uuid)
+    toRep uuid              = DynString $ T.pack . show $ uuid
 
 -------------------------------------------------------------------------------
 pico :: Rational
