@@ -13,7 +13,8 @@
 ------------------------------------------------------------------------------
 module Web.AWS.DynamoDB.DeleteItem
     ( -- * Types
-      DeleteItem (..)
+      DeleteItem         (..)
+    , DeleteItemResponse (..)
       -- * Operations
     , deleteItem
     ) where
