@@ -111,6 +111,7 @@ issueDynamo config@DynamoConfig{..} dynamoObject url heads  = withOpenSSL $ do
         }
         result <- try $ withHTTP req' dynamoManager $ \resp -> do
                     r <- parseFromStream json' (responseBody resp)
+                    when dynamoDebug $ print r
                     return $ fromJSON r
         case result of
          Left e -> 
