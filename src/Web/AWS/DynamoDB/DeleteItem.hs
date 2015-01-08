@@ -14,6 +14,8 @@
 module Web.AWS.DynamoDB.DeleteItem
     ( -- * Types
       DeleteItem (..)
+      -- * Operations
+    , deleteItem
     ) where
 
 import           Control.Applicative (pure, (<$>), (<*>))
