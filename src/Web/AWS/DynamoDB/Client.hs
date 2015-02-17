@@ -11,35 +11,33 @@
 ------------------------------------------------------------------------------
 module Web.AWS.DynamoDB.Client ( dynamo, defaultDynamoBackoffPolicy ) where
 
-import           Control.Applicative            ( (<$>) )
-import           Control.Exception              ( try, fromException )
-import           Control.Monad                  ( when )
-import           Control.Retry
-import           Data.Text                      ( pack )
-import           Data.Typeable                  ( typeOf )
-import           Data.Aeson                     ( FromJSON
-                                                , encode
-                                                , json'
-                                                , eitherDecodeStrict
-                                                , Result (..)
-                                                , fromJSON
-                                                )
-import qualified Data.ByteString.Lazy as L      
-import           Data.Monoid                    ( (<>) )
-import           Data.Bool                      ( bool )
-import           Data.Time                      ( getCurrentTime )
-import qualified Data.Text as T
-import           Data.Text                      ( Text )
-import           Network.HTTP.Types.Status      ( Status(..) )
-import           Network.HTTP.Types.Header      ( RequestHeaders )
+import           Aws.General hiding             ( parse, toText )
 import           Aws.SignatureV4                ( newCredentials
                                                 , signPostRequestIO
                                                 , UriPath
                                                 , UriQuery
                                                 )
-import           Aws.General hiding             ( parse, toText )
-import           System.IO.Streams              ( InputStream, OutputStream)
-import qualified System.IO.Streams as Streams   
+import           Control.Exception ( try, fromException )
+import           Control.Monad ( when )
+import           Control.Retry
+import           Data.Aeson                     ( encode
+                                                , json'
+                                                , eitherDecodeStrict
+                                                , Result (..)
+                                                , fromJSON
+                                                , FromJSON
+                                                , ToJSON
+                                                )
+import           Data.Bool ( bool )
+import qualified Data.ByteString.Lazy as L
+import           Data.Maybe
+import           Data.Text ( pack )
+import           Data.Time ( getCurrentTime )
+import           Data.Typeable ( typeOf )
+import           Network.HTTP.Types.Header ( RequestHeaders )
+import           Network.HTTP.Types.Status ( Status(..) )
+import qualified System.IO.Streams as Streams
+import           System.IO.Streams.Attoparsec ( parseFromStream )
 import           System.IO.Streams.HTTP         ( parseUrl
                                                 , method
                                                 , requestHeaders
@@ -53,10 +51,7 @@ import           System.IO.Streams.HTTP         ( parseUrl
                                                     ( StatusCodeException
                                                     )
                                                 )
-import           System.IO.Streams.Attoparsec   ( parseFromStream )
-                                                
-import           Web.AWS.DynamoDB.Util          ( toBS )
-import           Web.AWS.DynamoDB.Types         ( DynamoAction       (..)
+import           Web.AWS.DynamoDB.Types         ( DynamoAction  
                                                 , DynamoConfig       (..)
                                                 , DynamoError        (..)
                                                 , DynamoErrorType    (..)
@@ -64,7 +59,8 @@ import           Web.AWS.DynamoDB.Types         ( DynamoAction       (..)
                                                 , PublicKey          (..)
                                                 , SecretKey          (..)
                                                 )
-import           Debug.Trace
+import           Web.AWS.DynamoDB.Util ( toBS )
+
 
 ------------------------------------------------------------------------------
 -- | Default backoff policy, 5 tries, exponential at 500
@@ -82,7 +78,7 @@ dynamo
 dynamo config@DynamoConfig{..} dynamoObject = do
   let produrl = "https://dynamodb." <> regionToText dynamoRegion <> ".amazonaws.com:443"
       testurl = "http://localhost:4567"
-      url     = bool produrl testurl dynamoIsDev
+      url     = fromMaybe (bool produrl testurl dynamoIsDev) dynamoUrl
       rawjson = L.toStrict $ encode dynamoObject
   when dynamoDebug $ print rawjson
   requestResult <- createRequest dynamoObject config
@@ -92,17 +88,14 @@ dynamo config@DynamoConfig{..} dynamoObject = do
 
 ------------------------------------------------------------------------------
 -- | Action to retry in case request throughput throttling occurs
--- issueDynamo
---   :: (DynamoAction a b)
---   => DynamoConfig
---   -> Text
---   -> a
---   -> IO (Either DynamoError b)
--- issueDynamo ::
---   (FromJSON b, ToJSON a) =>
---   DynamoConfig
---   -> a -> String -> RequestHeaders -> IO (Either DynamoError b)
-issueDynamo config@DynamoConfig{..} dynamoObject url heads  = withOpenSSL $ do
+issueDynamo
+  :: (FromJSON b, ToJSON a)
+  => DynamoConfig
+  -> a
+  -> String
+  -> RequestHeaders
+  -> IO (Either DynamoError b)
+issueDynamo DynamoConfig{..} dynamoObject url heads  = withOpenSSL $ do
         req <- parseUrl url
         let req' = req {
             method = "POST"
@@ -128,7 +121,8 @@ issueDynamo config@DynamoConfig{..} dynamoObject url heads  = withOpenSSL $ do
                return $ case num of
                  code | code >= 400 && code < 500 -> Left $ ClientError code errorJson
                       | code >= 500 -> Left $ ServerError code errorJson
-
+                      | otherwise -> Left $ ConnectionError "invalid code"
+             x -> return $ Left $ ConnectionError (show x)
          Right (Success resp) -> return $ Right resp
          Right (Error str)    -> return $ Left $ ParseError str
 
@@ -154,7 +148,7 @@ retryDynamo action policy =
         (Left (ServerError 500 (DynamoErrorDetails InternalFailure _))) -> True
         (Left (ServerError 500 (DynamoErrorDetails InternalServerError _))) -> True
         (Left (ServerError 503 (DynamoErrorDetails ServiceUnavailableException _))) -> True
-        otherwise -> False
+        _ -> False
 
 ------------------------------------------------------------------------------
 -- | Generate AWS Headers

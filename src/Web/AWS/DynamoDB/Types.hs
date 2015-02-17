@@ -15,7 +15,7 @@
 ------------------------------------------------------------------------------
 module Web.AWS.DynamoDB.Types
     ( -- * Types
-      DynamoAction         (..)
+      DynamoAction
     , DynamoConfig         (..)
     , DynamoError          (..)
     , DynamoErrorDetails   (..)
@@ -27,28 +27,20 @@ module Web.AWS.DynamoDB.Types
     , module Control.Retry
     ) where
 
+------------------------------------------------------------------------------
 import Aws.General         ( Region (..) )
 import Control.Applicative ( pure, (<$>), (<*>), (<|>) )
-import Control.Monad       ( forM, mzero, liftM )
+import Control.Monad       ( mzero )
 import Control.Retry       ( RetryPolicy )
 import Data.Aeson
-import Data.Aeson.Types    ( typeMismatch )
 import Data.ByteString     ( ByteString )
 import Data.Maybe          ( fromMaybe  )
 import Data.Text           ( Text, unpack, split )
-import Data.Time           ( UTCTime  )
 import Data.Typeable       ( Typeable )
-import Data.Scientific
-import qualified Data.Set as S
-import qualified Data.Text as T
-import qualified Data.Text.Encoding as T
-import qualified Data.Map as M
-import Data.HashMap.Strict ( toList  )
 import System.IO.Streams.HTTP
-import Text.Printf         ( printf  )
 import Text.Read  hiding   ( String, Number )
+------------------------------------------------------------------------------
 
-import Web.AWS.DynamoDB.Util
 
 ------------------------------------------------------------------------------
 -- | Dynamo Config Type, stores Dynamo DB settings and connection manager (pool)
@@ -58,6 +50,7 @@ data DynamoConfig = DynamoConfig {
       , dynamoManager   :: Manager
       , dynamoBackOff   :: RetryPolicy
       , dynamoRegion    :: Region
+      , dynamoUrl       :: Maybe String -- ^ If Nothing will use dev prod urls, otherwise this 
       , dynamoIsDev     :: Bool -- ^ Default port for dynalite is 4567
       , dynamoDebug     :: Bool -- ^ Will print json response and http info
       } 
@@ -65,7 +58,7 @@ data DynamoConfig = DynamoConfig {
 ------------------------------------------------------------------------------
 -- | Show instance for DynamoConfig
 instance Show DynamoConfig where
-    show (DynamoConfig pk sk _ _ reg dev debug) =
+    show (DynamoConfig pk sk _ _ reg dev debug _) =
         "== Dynamo Config ==\n" ++
         concat [ " "
                , show pk
