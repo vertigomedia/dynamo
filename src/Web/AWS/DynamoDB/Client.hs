@@ -3,7 +3,7 @@
 ------------------------------------------------------------------------------
 -- | 
 -- Module      : Web.AWS.DynamoDB.Client
--- Copyright   : (c) David Johnson, 2014
+-- Copyright   : (c) David Johnson, 2015
 -- Maintainer  : djohnson.m@gmail.com
 -- Stability   : experimental
 -- Portability : POSIX
@@ -161,7 +161,7 @@ createRequest dynamoObject DynamoConfig{..} = do
       let PublicKey public = dynamoPublicKey
           SecretKey secret = dynamoSecretKey
           actionName       = toBS $ typeOf dynamoObject
-      creds <- newCredentials public secret
+      creds <- newCredentials public secret Nothing
       now   <- getCurrentTime
       signPostRequestIO creds dynamoRegion ServiceNamespaceDynamodb now "POST"
            ([] :: UriPath)

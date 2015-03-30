@@ -42,7 +42,7 @@ library
   hs-source-dirs:      src
   build-depends:       aeson
                      , attoparsec
-                     , aws-general
+                     , aws-general     >= 0.2.1
                      , base            >=4.7 && <4.8
                      , base64-bytestring
                      , bytestring
