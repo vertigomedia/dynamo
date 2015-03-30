@@ -17,8 +17,8 @@ import           Aws.SignatureV4                ( newCredentials
                                                 , UriPath
                                                 , UriQuery
                                                 )
-import           Control.Exception ( try, fromException )
-import           Control.Monad ( when )
+import           Control.Exception              ( try, fromException )
+import           Control.Monad                  ( when )
 import           Control.Retry
 import           Data.Aeson                     ( encode
                                                 , json'
@@ -44,13 +44,13 @@ import           System.IO.Streams.HTTP         ( parseUrl
                                                 , requestBody
                                                 , stream
                                                 , withHTTP
-                                                , withOpenSSL
                                                 , responseBody
                                                 , Request (..)
                                                 , HttpException
                                                     ( StatusCodeException
                                                     )
                                                 )
+import           Network.HTTP.Client     ( responseBody )
 import           Web.AWS.DynamoDB.Types         ( DynamoAction  
                                                 , DynamoConfig       (..)
                                                 , DynamoError        (..)
@@ -76,12 +76,13 @@ dynamo
   -> a
   -> IO (Either DynamoError b)
 dynamo config@DynamoConfig{..} dynamoObject = do
-  let produrl = "https://dynamodb." <> regionToText dynamoRegion <> ".amazonaws.com:443"
+  let produrl = "dynamodb." <> regionToText dynamoRegion <> ".amazonaws.com"
       testurl = "http://localhost:4567"
       url     = fromMaybe (bool produrl testurl dynamoIsDev) dynamoUrl
       rawjson = L.toStrict $ encode dynamoObject
   when dynamoDebug $ print rawjson
   requestResult <- createRequest dynamoObject config
+  when dynamoDebug $ print requestResult
   case requestResult of
     Left err -> return . Left $ RequestCreationError err 
     Right heads -> retryDynamo (issueDynamo config dynamoObject url heads) dynamoBackOff
@@ -95,7 +96,8 @@ issueDynamo
   -> String
   -> RequestHeaders
   -> IO (Either DynamoError b)
-issueDynamo DynamoConfig{..} dynamoObject url heads  = withOpenSSL $ do
+issueDynamo DynamoConfig{..} dynamoObject url heads  = do
+        when dynamoDebug $ print (encode dynamoObject)
         req <- parseUrl url
         let req' = req {
             method = "POST"
@@ -169,7 +171,7 @@ createRequest dynamoObject DynamoConfig{..} = do
            ( [ ("Accept-Encoding", "gzip")
            ,   ("connection", "Keep-Alive")
            ,   ("content-type", "application/x-amz-json-1.0")
-           ,   ("Host", "dynamodb." <> regionToText dynamoRegion <> ".amazonaws.com:443")
+           ,   ("Host", "dynamodb." <> regionToText dynamoRegion <> ".amazonaws.com")
            ,   ("x-amz-target", "DynamoDB_20120810." <> actionName)
              ] :: RequestHeaders)
            (L.toStrict $ encode dynamoObject)

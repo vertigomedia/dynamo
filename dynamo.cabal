@@ -5,7 +5,7 @@ license:             BSD3
 license-file:        LICENSE
 author:              David Johnson
 maintainer:          djohnson.m@gmail.com
-copyright:           Vertigo Music Inc. (c) 2014
+copyright:           Vertigo Music Inc. (c) 2015
 category:            Web, DB
 build-type:          Simple
 cabal-version:       >=1.10
@@ -49,17 +49,18 @@ library
                      , cereal
                      , containers      >= 0.5.5.1
                      , data-default    >= 0.5.3
+                     , http-client >= 0.4.9
                      , http-types
                      , io-streams
-                     , http-client-streams
+                     , io-streams-http
                      , retry
                      , scientific      >= 0.3.3.3
                      , tagged          >= 0.7.3
                      , text
                      , time
                      , unordered-containers
-                     , vector          >= 0.10.12.2
                      , uuid
+                     , vector          >= 0.10.12.2
   default-language:    Haskell2010
 
 Test-Suite spec
@@ -71,11 +72,12 @@ Test-Suite spec
                     , data-default    >= 0.5.3
                     , dynamo
                     , hspec
+                    , http-client >= 0.4.9
+                    , http-client-streams
                     , retry
-                    , text
-                    , http-client-streams 
                     , scientific      >= 0.3.3.3
                     , tagged          >= 0.7.3
+                    , text
                     , vector          >= 0.10.12.2
     default-language: Haskell2010
     ghc-options:      -Wall
