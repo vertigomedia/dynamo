@@ -76,7 +76,7 @@ dynamo
   -> a
   -> IO (Either DynamoError b)
 dynamo config@DynamoConfig{..} dynamoObject = do
-  let produrl = "dynamodb." <> regionToText dynamoRegion <> ".amazonaws.com"
+  let produrl = "https://dynamodb." <> regionToText dynamoRegion <> ".amazonaws.com:443"
       testurl = "http://localhost:4567"
       url     = fromMaybe (bool produrl testurl dynamoIsDev) dynamoUrl
       rawjson = L.toStrict $ encode dynamoObject
