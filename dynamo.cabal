@@ -50,7 +50,7 @@ library
                      , cereal
                      , containers      >= 0.5.5.1
                      , data-default    >= 0.5.3
-                     , http-client >= 0.4.9
+                     , http-client     >= 0.4.9
                      , http-types
                      , io-streams
                      , io-streams-http
@@ -64,21 +64,3 @@ library
                      , vector          >= 0.10.12.2
   default-language:    Haskell2010
 
-Test-Suite spec
-    type:             exitcode-stdio-1.0
-    hs-source-dirs:   spec
-    main-is:          Main.hs
-    build-depends:    base
-                    , containers      >= 0.5.5.1
-                    , data-default    >= 0.5.3
-                    , dynamo
-                    , hspec
-                    , http-client >= 0.4.9
-                    , http-client-streams
-                    , retry
-                    , scientific      >= 0.3.3.3
-                    , tagged          >= 0.7.3
-                    , text
-                    , vector          >= 0.10.12.2
-    default-language: Haskell2010
-    ghc-options:      -Wall
